@@ -20,6 +20,7 @@ classifiers = [
 dependencies = [
     "aiohttp",
     "requests",
+    "websockets",
 ]
 
 # For more information, visit the GitHub repository:
