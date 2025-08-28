@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bitget-api-client"
-version = "0.1.3"
+version = "0.1.4"
 authors = [
   { name="tty666", email="theentity666@gmail.com" },
 ]
