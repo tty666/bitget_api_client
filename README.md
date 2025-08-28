@@ -48,9 +48,8 @@ async def main():
         # Example 3: Get Candlestick Data for BTCUSDT (Spot module)
         # This example fetches 1-hour candlesticks for BTCUSDT
         print("\n--- Candlestick Data for BTCUSDT (1-hour) ---")
-        candlesticks = await client.spot.get_candlestick_data(symbol="BTCUSDT", granularity="60min", limit=10)
-        for candle in candlesticks:
-            print(f"Timestamp: {candle[0]}, Open: {candle[1]}, High: {candle[2]}, Low: {candle[3]}, Close: {candle[4]}, Volume: {candle[5]}")
+        candlesticks = await client.spot.get_candlestick_data(symbol="BTCUSDT", granularity="1h", limit=10)
+        print(candlesticks)
 
         # Example 4: Get Account Assets (Common module)
         print("\n--- Account Assets Overview ---")

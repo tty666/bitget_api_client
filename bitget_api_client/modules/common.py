@@ -259,7 +259,7 @@ class Common:
         return await self.client._send_request("GET", request_path, params=params)
 
     async def get_server_time(self):
-        request_path = "/api/v2/common/time"
+        request_path = "/api/v2/public/time"
         return await self.client._send_request("GET", request_path, params={})
 
     async def get_spot_fund_flow(self, symbol, period=None):
