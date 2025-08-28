@@ -31,7 +31,7 @@ jobs:
           RELEASE_VERSION=${{ github.event.release.tag_name }}
           # Remove 'v' prefix if present
           PACKAGE_VERSION=${RELEASE_VERSION#v}
-          sed -i "s/^version = ".*"/version = "${PACKAGE_VERSION}"/" pyproject.toml
+          awk -v new_version="${PACKAGE_VERSION}" '/^version = / {$3 = "\"" new_version "\""} 1' pyproject.toml > pyproject.toml.tmp && mv pyproject.toml.tmp pyproject.toml
           echo "Updated pyproject.toml version to $PACKAGE_VERSION"
 
       - name: Build release distributions
