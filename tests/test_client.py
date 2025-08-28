@@ -1,159 +1,202 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
+import asyncio
 from bitget_api_client.client import BitgetApiClient, Affiliate, Broker, Common, Contract, CopyTrading, Earn, Instloan, Margin, Spot, Uta
 
 class TestBitgetApiClient(unittest.TestCase):
-    def setUp(self):
+    async def asyncSetUp(self):
         self.api_key = "test_api_key"
         self.secret_key = "test_secret_key"
         self.passphrase = "test_passphrase"
         self.client = BitgetApiClient(self.api_key, self.secret_key, self.passphrase)
 
-    def test_client_initialization(self):
+    async def asyncTearDown(self):
+        await self.client.close()
+
+    async def test_client_initialization(self):
+        await self.asyncSetUp()
         self.assertEqual(self.client.api_key, self.api_key)
         self.assertEqual(self.client.secret_key, self.secret_key)
         self.assertEqual(self.client.passphrase, self.passphrase)
         self.assertEqual(self.client.base_url, "https://api.bitget.com")
+        await self.asyncTearDown()
 
-    @patch('requests.get')
-    def test_send_request_get(self, mock_get):
-        mock_response = Mock()
-        mock_response.status_code = 200
+    @patch('aiohttp.ClientSession.get')
+    async def test_send_request_get(self, mock_get):
+        await self.asyncSetUp()
+        mock_response = AsyncMock()
+        mock_response.status = 200
         mock_response.json.return_value = {"code": "00000", "msg": "success"}
-        mock_get.return_value = mock_response
+        mock_get.return_value.__aenter__.return_value = mock_response
 
-        response = self.client._send_request("GET", "/test_path", params={"param1": "value1"})
+        response = await self.client._send_request("GET", "/test_path", params={"param1": "value1"})
         self.assertEqual(response, {"code": "00000", "msg": "success"})
         mock_get.assert_called_once()
+        await self.asyncTearDown()
 
-    @patch('requests.post')
-    def test_send_request_post(self, mock_post):
-        mock_response = Mock()
-        mock_response.status_code = 200
+    @patch('aiohttp.ClientSession.post')
+    async def test_send_request_post(self, mock_post):
+        await self.asyncSetUp()
+        mock_response = AsyncMock()
+        mock_response.status = 200
         mock_response.json.return_value = {"code": "00000", "msg": "success"}
-        mock_post.return_value = mock_response
+        mock_post.return_value.__aenter__.return_value = mock_response
 
-        response = self.client._send_request("POST", "/test_path", body={"key": "value"})
+        response = await self.client._send_request("POST", "/test_path", body={"key": "value"})
         self.assertEqual(response, {"code": "00000", "msg": "success"})
         mock_post.assert_called_once()
+        await self.asyncTearDown()
 
 class TestAffiliate(unittest.TestCase):
-    def setUp(self):
+    async def asyncSetUp(self):
         self.mock_client = Mock()
         self.affiliate = Affiliate(self.mock_client)
 
-    def test_affiliate_initialization(self):
-        self.assertEqual(self.affiliate.client, self.mock_client)
+    async def asyncTearDown(self):
+        pass
 
-    def test_get_agent_direct_commissions(self):
+    async def test_affiliate_initialization(self):
+        await self.asyncSetUp()
+        self.assertEqual(self.affiliate.client, self.mock_client)
+        await self.asyncTearDown()
+
+    async def test_get_agent_direct_commissions(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"commissionList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_direct_commissions(startTime="123", endTime="456", uid="789")
+        response = await self.affiliate.get_agent_direct_commissions(startTime="123", endTime="456", uid="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/broker/v1/agent/customer-commissions",
             params={'startTime': '123', 'endTime': '456', 'uid': '789'}
         )
+        await self.asyncTearDown()
 
-    def test_get_agent_customer_trade_volume_list(self):
+    async def test_get_agent_customer_trade_volume_list(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_customer_trade_volume_list(pageNo="1", pageSize="500", uid="123")
+        response = await self.affiliate.get_agent_customer_trade_volume_list(pageNo="1", pageSize="500", uid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/broker/v1/agent/customerTradeVolumnList",
             body={'pageNo': '1', 'pageSize': '500', 'uid': '123'}
         )
+        await self.asyncTearDown()
 
-    def test_get_agent_customer_list(self):
+    async def test_get_agent_customer_list(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_customer_list(pageNo="1", pageSize="500", uid="123", referralCode="abc")
+        response = await self.affiliate.get_agent_customer_list(pageNo="1", pageSize="500", uid="123", referralCode="abc")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/broker/v1/agent/customerList",
             body={'pageNo': '1', 'pageSize': '500', 'uid': '123', 'referralCode': 'abc'}
         )
+        await self.asyncTearDown()
 
-    def test_get_agent_customer_kyc_result(self):
+    async def test_get_agent_customer_kyc_result(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"userList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_customer_kyc_result(startTime="123", endTime="456", uid="789")
+        response = await self.affiliate.get_agent_customer_kyc_result(startTime="123", endTime="456", uid="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/broker/v1/agent/customer-kyc-result",
             params={'startTime': '123', 'endTime': '456', 'uid': '789'}
         )
+        await self.asyncTearDown()
 
-    def test_get_agent_customer_deposit_list(self):
+    async def test_get_agent_customer_deposit_list(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_customer_deposit_list(pageNo="1", pageSize="500", uid="123")
+        response = await self.affiliate.get_agent_customer_deposit_list(pageNo="1", pageSize="500", uid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/broker/v1/agent/customerDepositList",
             body={'pageNo': '1', 'pageSize': '500', 'uid': '123'}
         )
+        await self.asyncTearDown()
 
-    def test_get_agent_customer_assets_list(self):
+    async def test_get_agent_customer_assets_list(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_customer_assets_list(pageNo="1", pageSize="500", uid="123")
+        response = await self.affiliate.get_agent_customer_assets_list(pageNo="1", pageSize="500", uid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/broker/v1/agent/customerAccountAssetsList",
             body={'pageNo': '1', 'pageSize': '500', 'uid': '123'}
         )
+        await self.asyncTearDown()
 
-    def test_get_agent_commission_detail(self):
+    async def test_get_agent_commission_detail(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"commissionList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.affiliate.get_agent_commission_detail(startTime="123", endTime="456", limit="10", idLessThan="789")
+        response = await self.affiliate.get_agent_commission_detail(startTime="123", endTime="456", limit="10", idLessThan="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/broker/v1/agent/commission-distribution",
             params={'startTime': '123', 'endTime': '456', 'limit': '10', 'idLessThan': '789'}
         )
+        await self.asyncTearDown()
 
 class TestBroker(unittest.TestCase):
     def setUp(self):
+        asyncio.run(self.asyncSetUp())
+
+    def tearDown(self):
+        asyncio.run(self.asyncTearDown())
+
+    async def asyncSetUp(self):
         self.mock_client = Mock()
         self.broker = Broker(self.mock_client)
 
-    def test_broker_initialization(self):
-        self.assertEqual(self.broker.client, self.mock_client)
+    async def asyncTearDown(self):
+        pass
 
-    def test_create_subaccount(self):
+    async def test_broker_initialization(self):
+        await self.asyncSetUp()
+        self.assertEqual(self.broker.client, self.mock_client)
+        await self.asyncTearDown()
+
+    async def test_create_subaccount(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"subUid": "123", "subaccountName": "test@example.com"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.create_subaccount(subaccountName="test@example.com", label="test_label")
+        response = await self.broker.create_subaccount(subaccountName="test@example.com", label="test_label")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/broker/account/create-subaccount",
             body={'subaccountName': 'test@example.com', 'label': 'test_label'}
         )
+        await self.asyncTearDown()
 
-    def test_create_subaccount_apikey(self):
+    async def test_create_subaccount_apikey(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"subUid": "123", "apiKey": "abc", "secretKey": "xyz"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.create_subaccount_apikey(
+        response = await self.broker.create_subaccount_apikey(
             subUid="123",
             passphrase="pass123",
             label="test_key",
@@ -174,84 +217,97 @@ class TestBroker(unittest.TestCase):
                 'permList': ['spot_trade']
             }
         )
+        await self.asyncTearDown()
 
-    def test_create_subaccount_deposit_address(self):
+    async def test_create_subaccount_deposit_address(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"address": "0x123", "coin": "ETH"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.create_subaccount_deposit_address(subUid="123", coin="ETH", chain="ERC20")
+        response = await self.broker.create_subaccount_deposit_address(subUid="123", coin="ETH", chain="ERC20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/broker/account/subaccount-address",
             body={'subUid': '123', 'coin': 'ETH', 'chain': 'ERC20'}
         )
+        await self.asyncTearDown()
 
-    def test_delete_subaccount_apikey(self):
+    async def test_delete_subaccount_apikey(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.delete_subaccount_apikey(subUid="123", apiKey="test_api_key")
+        response = await self.broker.delete_subaccount_apikey(subUid="123", apiKey="test_api_key")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/broker/manage/delete-subaccount-apikey",
             body={'subUid': '123', 'apiKey': 'test_api_key'}
         )
+        await self.asyncTearDown()
 
-    def test_get_broker_info(self):
+    async def test_get_broker_info(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {"subAccountSize": "1", "maxSubAccountSize": "10"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_broker_info()
+        response = await self.broker.get_broker_info()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/broker/account/info",
             params={}
         )
+        await self.asyncTearDown()
 
-    def test_get_broker_subaccounts(self):
+    async def test_get_broker_subaccounts(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_broker_subaccounts(startTime="123", endTime="456", pageNo="1", pageSize="10")
+        response = await self.broker.get_broker_subaccounts(startTime="123", endTime="456", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/broker/v2/subaccounts",
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10'}
         )
+        await self.asyncTearDown()
 
-    def test_get_broker_subaccounts_commissions(self):
+    async def test_get_broker_subaccounts_commissions(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_broker_subaccounts_commissions(startTime="123", endTime="456", pageNo="1", pageSize="10", bizType="spot", subBizType="spot_trade")
+        response = await self.broker.get_broker_subaccounts_commissions(startTime="123", endTime="456", pageNo="1", pageSize="10", bizType="spot", subBizType="spot_trade")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/broker/v2/commissions",
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10', 'bizType': 'spot', 'subBizType': 'spot_trade'}
         )
+        await self.asyncTearDown()
 
-    def test_get_broker_trade_volume(self):
+    async def test_get_broker_trade_volume(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_broker_trade_volume(startTime="123", endTime="456", pageNo="1", pageSize="10")
+        response = await self.broker.get_broker_trade_volume(startTime="123", endTime="456", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/broker/v2/trade-volume",
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10'}
         )
+        await self.asyncTearDown()
 
-    def test_get_subaccounts_deposit_and_withdrawal_records(self):
+    async def test_get_subaccounts_deposit_and_withdrawal_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_subaccounts_deposit_and_withdrawal_records(startTime="123", endTime="456", limit="10", idLessThan="789", type="deposit")
+        response = await self.broker.get_subaccounts_deposit_and_withdrawal_records(startTime="123", endTime="456", limit="10", idLessThan="789", type="deposit")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -259,11 +315,11 @@ class TestBroker(unittest.TestCase):
             params={'startTime': '123', 'endTime': '456', 'limit': '10', 'idLessThan': '789', 'type': 'deposit'}
         )
 
-    def test_get_subaccount_apikey(self):
+    async def test_get_subaccount_apikey(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_subaccount_apikey(subUid="123")
+        response = await self.broker.get_subaccount_apikey(subUid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -271,11 +327,11 @@ class TestBroker(unittest.TestCase):
             params={'subUid': '123'}
         )
 
-    def test_get_subaccount_email(self):
+    async def test_get_subaccount_email(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"subaccountEmail": "test@example.com"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_subaccount_email(subUid="123")
+        response = await self.broker.get_subaccount_email(subUid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -283,11 +339,11 @@ class TestBroker(unittest.TestCase):
             params={'subUid': '123'}
         )
 
-    def test_get_subaccount_future_assets(self):
+    async def test_get_subaccount_future_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"assetsList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_subaccount_future_assets(subUid="123", productType="USDT-FUTURES")
+        response = await self.broker.get_subaccount_future_assets(subUid="123", productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -295,11 +351,11 @@ class TestBroker(unittest.TestCase):
             params={'subUid': '123', 'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_subaccount_list(self):
+    async def test_get_subaccount_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"subList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_subaccount_list(limit="10", idLessThan="123", status="normal", startTime="456", endTime="789")
+        response = await self.broker.get_subaccount_list(limit="10", idLessThan="123", status="normal", startTime="456", endTime="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -307,11 +363,11 @@ class TestBroker(unittest.TestCase):
             params={'limit': '10', 'idLessThan': '123', 'status': 'normal', 'startTime': '456', 'endTime': '789'}
         )
 
-    def test_get_subaccount_spot_assets(self):
+    async def test_get_subaccount_spot_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"assetsList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.get_subaccount_spot_assets(subUid="123", coin="BTC", assetType="hold_only")
+        response = await self.broker.get_subaccount_spot_assets(subUid="123", coin="BTC", assetType="hold_only")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -319,11 +375,11 @@ class TestBroker(unittest.TestCase):
             params={'subUid': '123', 'coin': 'BTC', 'assetType': 'hold_only'}
         )
 
-    def test_modify_subaccount(self):
+    async def test_modify_subaccount(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"subUid": "123"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.modify_subaccount(subUid="123", permList=["transfer"], status="normal", language="en_US")
+        response = await self.broker.modify_subaccount(subUid="123", permList=["transfer"], status="normal", language="en_US")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -331,11 +387,11 @@ class TestBroker(unittest.TestCase):
             body={'subUid': '123', 'permList': ['transfer'], 'status': 'normal', 'language': 'en_US'}
         )
 
-    def test_modify_subaccount_apikey(self):
+    async def test_modify_subaccount_apikey(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.modify_subaccount_apikey(
+        response = await self.broker.modify_subaccount_apikey(
             subUid="123",
             apiKey="test_api_key",
             passphrase="test_passphrase",
@@ -359,11 +415,11 @@ class TestBroker(unittest.TestCase):
             }
         )
 
-    def test_modify_subaccount_email(self):
+    async def test_modify_subaccount_email(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.modify_subaccount_email(subUid="123", subaccountEmail="test@example.com")
+        response = await self.broker.modify_subaccount_email(subUid="123", subaccountEmail="test@example.com")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -371,11 +427,11 @@ class TestBroker(unittest.TestCase):
             body={'subUid': '123', 'subaccountEmail': 'test@example.com'}
         )
 
-    def test_sub_deposit_auto_transfer(self):
+    async def test_sub_deposit_auto_transfer(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.sub_deposit_auto_transfer(subUid="123", coin="USDT", amount="100")
+        response = await self.broker.sub_deposit_auto_transfer(subUid="123", coin="USDT", amount="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -383,11 +439,11 @@ class TestBroker(unittest.TestCase):
             body={'subUid': '123', 'coin': 'USDT', 'amount': '100'}
         )
 
-    def test_sub_deposit_records(self):
+    async def test_sub_deposit_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.sub_deposit_records(orderId="123", userId="456", startTime="789", endTime="1011", limit="10", idLessThan="1213")
+        response = await self.broker.sub_deposit_records(orderId="123", userId="456", startTime="789", endTime="1011", limit="10", idLessThan="1213")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -395,11 +451,11 @@ class TestBroker(unittest.TestCase):
             params={'orderId': '123', 'userId': '456', 'startTime': '789', 'endTime': '1011', 'limit': '10', 'idLessThan': '1213'}
         )
 
-    def test_sub_withdrawal_records(self):
+    async def test_sub_withdrawal_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.sub_withdrawal_records(orderId="123", userId="456", startTime="789", endTime="1011", limit="10", idLessThan="1213")
+        response = await self.broker.sub_withdrawal_records(orderId="123", userId="456", startTime="789", endTime="1011", limit="10", idLessThan="1213")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -407,11 +463,11 @@ class TestBroker(unittest.TestCase):
             params={'orderId': '123', 'userId': '456', 'startTime': '789', 'endTime': '1011', 'limit': '10', 'idLessThan': '1213'}
         )
 
-    def test_subaccount_withdrawal(self):
+    async def test_subaccount_withdrawal(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "123"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.broker.subaccount_withdrawal(subUid="123", coin="USDT", dest="on_chain", address="0xabc", amount="100", chain="ERC20", tag="tag1", clientOid="oid1")
+        response = await self.broker.subaccount_withdrawal(subUid="123", coin="USDT", dest="on_chain", address="0xabc", amount="100", chain="ERC20", tag="tag1", clientOid="oid1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -421,49 +477,67 @@ class TestBroker(unittest.TestCase):
 
 class TestCommon(unittest.TestCase):
     def setUp(self):
+        asyncio.run(self.asyncSetUp())
+
+    def tearDown(self):
+        asyncio.run(self.asyncTearDown())
+
+    async def asyncSetUp(self):
         self.mock_client = Mock()
         self.common = Common(self.mock_client)
 
-    def test_common_initialization(self):
-        self.assertEqual(self.common.client, self.mock_client)
+    async def asyncTearDown(self):
+        pass
 
-    def test_get_assets_overview(self):
+    async def test_common_initialization(self):
+        await self.asyncSetUp()
+        self.assertEqual(self.common.client, self.mock_client)
+        await self.asyncTearDown()
+
+    async def test_get_assets_overview(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_assets_overview()
+        response = await self.common.get_assets_overview()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/account/all-account-balance",
             params={}
         )
+        await self.asyncTearDown()
 
-    def test_get_bot_account_assets(self):
+    async def test_get_bot_account_assets(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_bot_account_assets(accountType="futures")
+        response = await self.common.get_bot_account_assets(accountType="futures")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/account/bot-assets",
             params={'accountType': 'futures'}
         )
+        await self.asyncTearDown()
 
-    def test_get_funding_assets(self):
+    async def test_get_funding_assets(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_funding_assets(coin="USDT")
+        response = await self.common.get_funding_assets(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/account/funding-assets",
             params={'coin': 'USDT'}
         )
+        await self.asyncTearDown()
 
-    def test_batch_create_virtual_subaccount_and_apikey(self):
+    async def test_batch_create_virtual_subaccount_and_apikey(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
@@ -474,73 +548,83 @@ class TestCommon(unittest.TestCase):
             "ipList": ["192.168.1.1"],
             "permList": ["spot_trade"]
         }]
-        response = self.common.batch_create_virtual_subaccount_and_apikey(subaccounts_data)
+        response = await self.common.batch_create_virtual_subaccount_and_apikey(subaccounts_data)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/user/batch-create-subaccount-and-apikey",
             body=subaccounts_data
         )
+        await self.asyncTearDown()
 
-    def test_get_bgb_convert_coins(self):
+    async def test_get_bgb_convert_coins(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_bgb_convert_coins()
+        response = await self.common.get_bgb_convert_coins()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/mix/market/bgb-convert-coins",
             params={}
         )
+        await self.asyncTearDown()
 
-    def test_convert(self):
+    async def test_convert(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.convert(fromCoin="USDT", fromCoinSize="100", cnvtPrice="1.0", toCoin="BTC", toCoinSize="0.0001", traceId="123")
+        response = await self.common.convert(fromCoin="USDT", fromCoinSize="100", cnvtPrice="1.0", toCoin="BTC", toCoinSize="0.0001", traceId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/convert/trade",
             body={'fromCoin': 'USDT', 'fromCoinSize': '100', 'cnvtPrice': '1.0', 'toCoin': 'BTC', 'toCoinSize': '0.0001', 'traceId': '123'}
         )
+        await self.asyncTearDown()
 
-    def test_convert_bgb(self):
+    async def test_convert_bgb(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.convert_bgb(coinList=["EOS", "GROK"])
+        response = await self.common.convert_bgb(coinList=["EOS", "GROK"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/convert/bgb-convert",
             body={'coinList': ['EOS', 'GROK']}
         )
+        await self.asyncTearDown()
 
-    def test_create_virtual_subaccount(self):
+    async def test_create_virtual_subaccount(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.create_virtual_subaccount(subAccountList=["test1", "test2"])
+        response = await self.common.create_virtual_subaccount(subAccountList=["test1", "test2"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/user/create-virtual-subaccount",
             body={'subAccountList': ['test1', 'test2']}
         )
+        await self.asyncTearDown()
 
-    def test_create_virtual_subaccount_apikey(self):
+    async def test_create_virtual_subaccount_apikey(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.create_virtual_subaccount_apikey(
+        response = await self.common.create_virtual_subaccount_apikey(
             subAccountUid="123",
             passphrase="pass123",
             label="test_label",
             ipList=["192.168.1.1"],
-            permList=["spot_trade"],
-            permType="read_and_write"
+            permType="read_and_write",
+            permList=["spot_trade"]
         )
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
@@ -555,60 +639,63 @@ class TestCommon(unittest.TestCase):
                 'permList': ['spot_trade']
             }
         )
+        await self.asyncTearDown()
 
-    def test_get_convert_history(self):
+    async def test_get_convert_history(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_convert_history(startTime="123", endTime="456", pageNo="1", pageSize="10")
+        response = await self.common.get_convert_history(startTime="123", endTime="456", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/convert/record",
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10'}
         )
+        await self.asyncTearDown()
 
-    def test_get_futures_transaction_records(self):
+    async def test_get_futures_transaction_records(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_futures_transaction_records(startTime="123", endTime="456", productType="USDT-FUTURES", marginCoin="USDT", limit="10", idLessThan="789")
+        response = await self.common.get_futures_transaction_records(startTime="123", endTime="456", productType="USDT-FUTURES", marginCoin="USDT", limit="10", idLessThan="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/tax/future-record",
             params={'startTime': '123', 'endTime': '456', 'productType': 'USDT-FUTURES', 'marginCoin': 'USDT', 'limit': '10', 'idLessThan': '789'}
         )
+        await self.asyncTearDown()
 
-    def test_get_margin_transaction_history(self):
+    async def test_get_margin_transaction_history(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_margin_transaction_history(startTime="123", endTime="456", marginType="crossed", coin="BTC", limit="10", idLessThan="789")
+        response = await self.common.get_margin_transaction_history(startTime="123", endTime="456", marginType="crossed", coin="BTC", limit="10", idLessThan="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/tax/margin-record",
             params={'startTime': '123', 'endTime': '456', 'marginType': 'crossed', 'coin': 'BTC', 'limit': '10', 'idLessThan': '789'}
         )
+        await self.asyncTearDown()
 
-    def test_get_p2p_transaction_records(self):
+    async def test_get_p2p_transaction_records(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_p2p_transaction_records(startTime="123", endTime="456", coin="USDT", limit="10", idLessThan="789")
+        response = await self.common.get_p2p_transaction_records(startTime="123", endTime="456", coin="USDT", limit="10", idLessThan="789")
         self.assertEqual(response, expected_response)
-        self.mock_client._send_request.assert_called_once_with(
-            "GET",
-            "/api/v2/tax/p2p-record",
-            params={'startTime': '123', 'endTime': '456', 'coin': 'USDT', 'limit': '10', 'idLessThan': '789'}
-        )
 
-    def test_query_announcements(self):
+    async def test_query_announcements(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.query_announcements(language="en_US", annType="latest_news", startTime="123", endTime="456", cursor="789", limit="10")
+        response = await self.common.query_announcements(language="en_US", annType="latest_news", startTime="123", endTime="456", cursor="789", limit="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -616,11 +703,11 @@ class TestCommon(unittest.TestCase):
             params={'language': 'en_US', 'annType': 'latest_news', 'startTime': '123', 'endTime': '456', 'cursor': '789', 'limit': '10'}
         )
 
-    def test_get_spot_transaction_records(self):
+    async def test_get_spot_transaction_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_spot_transaction_records(startTime="123", endTime="456", coin="USDT", limit="10", idLessThan="789")
+        response = await self.common.get_spot_transaction_records(startTime="123", endTime="456", coin="USDT", limit="10", idLessThan="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -628,11 +715,11 @@ class TestCommon(unittest.TestCase):
             params={'startTime': '123', 'endTime': '456', 'coin': 'USDT', 'limit': '10', 'idLessThan': '789'}
         )
 
-    def test_get_business_line_all_symbol_trade_rate(self):
+    async def test_get_business_line_all_symbol_trade_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_business_line_all_symbol_trade_rate(symbol="BTCUSDT", businessType="mix")
+        response = await self.common.get_business_line_all_symbol_trade_rate(symbol="BTCUSDT", businessType="mix")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -640,11 +727,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'businessType': 'mix'}
         )
 
-    def test_get_convert_coins(self):
+    async def test_get_convert_coins(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_convert_coins()
+        response = await self.common.get_convert_coins()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -652,11 +739,11 @@ class TestCommon(unittest.TestCase):
             params={}
         )
 
-    def test_get_futures_active_buy_sell_volume_data(self):
+    async def test_get_futures_active_buy_sell_volume_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_futures_active_buy_sell_volume_data(symbol="BTCUSDT", period="5m")
+        response = await self.common.get_futures_active_buy_sell_volume_data(symbol="BTCUSDT", period="5m")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -664,11 +751,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '5m'}
         )
 
-    def test_get_futures_active_long_short_account_data(self):
+    async def test_get_futures_active_long_short_account_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_futures_active_long_short_account_data(symbol="BTCUSDT", period="5m")
+        response = await self.common.get_futures_active_long_short_account_data(symbol="BTCUSDT", period="5m")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -676,11 +763,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '5m'}
         )
 
-    def test_get_futures_active_long_short_position_data(self):
+    async def test_get_futures_active_long_short_position_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_futures_active_long_short_position_data(symbol="BTCUSDT", period="5m")
+        response = await self.common.get_futures_active_long_short_position_data(symbol="BTCUSDT", period="5m")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -688,11 +775,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '5m'}
         )
 
-    def test_get_futures_long_and_short_ratio_data(self):
+    async def test_get_futures_long_and_short_ratio_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_futures_long_and_short_ratio_data(symbol="BTCUSDT", period="5m")
+        response = await self.common.get_futures_long_and_short_ratio_data(symbol="BTCUSDT", period="5m")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -700,11 +787,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '5m'}
         )
 
-    def test_get_leveraged_long_short_ratio_data(self):
+    async def test_get_leveraged_long_short_ratio_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_leveraged_long_short_ratio_data(symbol="BTCUSDT", period="24h", coin="BTC")
+        response = await self.common.get_leveraged_long_short_ratio_data(symbol="BTCUSDT", period="24h", coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -712,11 +799,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '24h', 'coin': 'BTC'}
         )
 
-    def test_get_isolated_margin_borrowing_ratio_data(self):
+    async def test_get_isolated_margin_borrowing_ratio_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_isolated_margin_borrowing_ratio_data(symbol="BTCUSDT", period="24h")
+        response = await self.common.get_isolated_margin_borrowing_ratio_data(symbol="BTCUSDT", period="24h")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -724,11 +811,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '24h'}
         )
 
-    def test_get_margin_loan_growth_rate_data(self):
+    async def test_get_margin_loan_growth_rate_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_margin_loan_growth_rate_data(symbol="BTCUSDT", period="24h")
+        response = await self.common.get_margin_loan_growth_rate_data(symbol="BTCUSDT", period="24h")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -736,11 +823,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '24h'}
         )
 
-    def test_get_merchant_advertisement_list(self):
+    async def test_get_merchant_advertisement_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_merchant_advertisement_list(buySell="buy", country="US", pageNo="1", pageSize="10", currency="USD")
+        response = await self.common.get_merchant_advertisement_list(buySell="buy", country="US", pageNo="1", pageSize="10", currency="USD")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -748,11 +835,11 @@ class TestCommon(unittest.TestCase):
             params={'buySell': 'buy', 'country': 'US', 'pageNo': '1', 'pageSize': '10', 'currency': 'USD'}
         )
 
-    def test_get_merchant_information(self):
+    async def test_get_merchant_information(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_merchant_information()
+        response = await self.common.get_merchant_information()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -760,11 +847,11 @@ class TestCommon(unittest.TestCase):
             params={}
         )
 
-    def test_get_merchant_p2p_orders(self):
+    async def test_get_merchant_p2p_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_merchant_p2p_orders(startTime="123", endTime="456", pageNo="1", pageSize="10", orderType="buy", status="success", currency="USD")
+        response = await self.common.get_merchant_p2p_orders(startTime="123", endTime="456", pageNo="1", pageSize="10", orderType="buy", status="success", currency="USD")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -772,11 +859,11 @@ class TestCommon(unittest.TestCase):
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10', 'orderType': 'buy', 'status': 'success', 'currency': 'USD'}
         )
 
-    def test_get_p2p_merchant_list(self):
+    async def test_get_p2p_merchant_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_p2p_merchant_list(online="yes", idLessThan="123", limit="10")
+        response = await self.common.get_p2p_merchant_list(online="yes", idLessThan="123", limit="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -784,11 +871,11 @@ class TestCommon(unittest.TestCase):
             params={'online': 'yes', 'idLessThan': '123', 'limit': '10'}
         )
 
-    def test_get_quoted_price(self):
+    async def test_get_quoted_price(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_quoted_price(fromCoin="USDT", toCoin="ETH", fromCoinSize="100", toCoinSize="0.05")
+        response = await self.common.get_quoted_price(fromCoin="USDT", toCoin="ETH", fromCoinSize="100", toCoinSize="0.05")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -796,11 +883,11 @@ class TestCommon(unittest.TestCase):
             params={'fromCoin': 'USDT', 'toCoin': 'ETH', 'fromCoinSize': '100', 'toCoinSize': '0.05'}
         )
 
-    def test_get_server_time(self):
+    async def test_get_server_time(self):
         expected_response = {"code": "00000", "msg": "success", "data": "1234567890"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_server_time()
+        response = await self.common.get_server_time()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -808,11 +895,11 @@ class TestCommon(unittest.TestCase):
             params={}
         )
 
-    def test_get_spot_fund_flow(self):
+    async def test_get_spot_fund_flow(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_spot_fund_flow(symbol="BTCUSDT", period="15m")
+        response = await self.common.get_spot_fund_flow(symbol="BTCUSDT", period="15m")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -820,11 +907,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'period': '15m'}
         )
 
-    def test_get_spot_whale_net_flow_data(self):
+    async def test_get_spot_whale_net_flow_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_spot_whale_net_flow_data(symbol="BTCUSDT")
+        response = await self.common.get_spot_whale_net_flow_data(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -832,11 +919,11 @@ class TestCommon(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_trade_data_support_symbols(self):
+    async def test_get_trade_data_support_symbols(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_trade_data_support_symbols()
+        response = await self.common.get_trade_data_support_symbols()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -850,11 +937,11 @@ class TestCommon(unittest.TestCase):
 
     
 
-    def test_get_virtual_subaccounts(self):
+    async def test_get_virtual_subaccounts(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_virtual_subaccounts()
+        response = await self.common.get_virtual_subaccounts()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -862,11 +949,11 @@ class TestCommon(unittest.TestCase):
             params={}
         )
 
-    def test_get_subaccount_apikey_list(self):
+    async def test_get_subaccount_apikey_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.get_subaccount_apikey_list(subAccountUid="123")
+        response = await self.common.get_subaccount_apikey_list(subAccountUid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -874,11 +961,11 @@ class TestCommon(unittest.TestCase):
             params={'subAccountUid': '123'}
         )
 
-    def test_modify_virtual_subaccount(self):
+    async def test_modify_virtual_subaccount(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.modify_virtual_subaccount(subAccountUid="123", label="new_label", status="normal", permList=["read"], language="en_US")
+        response = await self.common.modify_virtual_subaccount(subAccountUid="123", label="new_label", status="normal", permList=["read"], language="en_US")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -886,11 +973,11 @@ class TestCommon(unittest.TestCase):
             body={'subAccountUid': '123', 'label': 'new_label', 'status': 'normal', 'permList': ['read'], 'language': 'en_US'}
         )
 
-    def test_modify_virtual_subaccount_apikey(self):
+    async def test_modify_virtual_subaccount_apikey(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.common.modify_virtual_subaccount_apikey(
+        response = await self.common.modify_virtual_subaccount_apikey(
             subAccountUid="123",
             subAccountApiKey="test_api_key",
             passphrase="test_passphrase",
@@ -916,37 +1003,53 @@ class TestCommon(unittest.TestCase):
 
 class TestContract(unittest.TestCase):
     def setUp(self):
+        asyncio.run(self.asyncSetUp())
+
+    def tearDown(self):
+        asyncio.run(self.asyncTearDown())
+
+    async def asyncSetUp(self):
         self.mock_client = Mock()
         self.contract = Contract(self.mock_client)
 
-    def test_contract_initialization(self):
-        self.assertEqual(self.contract.client, self.mock_client)
+    async def asyncTearDown(self):
+        pass
 
-    def test_adjust_position_margin(self):
+    async def test_contract_initialization(self):
+        await self.asyncSetUp()
+        self.assertEqual(self.contract.client, self.mock_client)
+        await self.asyncTearDown()
+
+    async def test_adjust_position_margin(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": ""}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.adjust_position_margin(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT", holdSide="long", amount="20")
+        response = await self.contract.adjust_position_margin(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT", holdSide="long", amount="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/account/set-margin",
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'marginCoin': 'USDT', 'holdSide': 'long', 'amount': '20'}
         )
+        await self.asyncTearDown()
 
-    def test_batch_cancel(self):
+    async def test_batch_cancel(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.batch_cancel(symbol="BTCUSDT", productType="USDT-FUTURES", orderIds=["123", "456"], clientOids=["abc", "def"])
+        response = await self.contract.batch_cancel(symbol="BTCUSDT", productType="USDT-FUTURES", orderIds=["123", "456"], clientOids=["abc", "def"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/trade/batch-cancel-order",
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'orderIds': ['123', '456'], 'clientOids': ['abc', 'def']}
         )
+        await self.asyncTearDown()
 
-    def test_batch_order(self):
+    async def test_batch_order(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -959,79 +1062,90 @@ class TestContract(unittest.TestCase):
             "orderType": "limit",
             "force": "gtc"
         }]
-        response = self.contract.batch_order(symbol="BTCUSDT", productType="USDT-FUTURES", orderList=order_list)
+        response = await self.contract.batch_order(symbol="BTCUSDT", productType="USDT-FUTURES", orderList=order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/trade/batch-place-order",
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'orderList': order_list}
         )
+        await self.asyncTearDown()
 
-    def test_cancel_all_orders(self):
+    async def test_cancel_all_orders(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.cancel_all_orders(productType="USDT-FUTURES", marginCoin="USDT")
+        response = await self.contract.cancel_all_orders(productType="USDT-FUTURES", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/order/cancel-all-orders",
             body={'productType': 'USDT-FUTURES', 'marginCoin': 'USDT'}
         )
+        await self.asyncTearDown()
 
-    def test_cancel_order(self):
+    async def test_cancel_order(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.cancel_order(symbol="BTCUSDT", productType="USDT-FUTURES", orderId="123", clientOid="abc", marginCoin="USDT")
+        response = await self.contract.cancel_order(symbol="BTCUSDT", productType="USDT-FUTURES", orderId="123", clientOid="abc", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/order/cancel-order",
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'orderId': '123', 'clientOid': 'abc', 'marginCoin': 'USDT'}
         )
+        await self.asyncTearDown()
 
-    def test_cancel_trigger_order(self):
+    async def test_cancel_trigger_order(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.cancel_trigger_order(productType="USDT-FUTURES", orderIdList=[{"orderId": "123", "clientOid": ""}], symbol="BTCUSDT", marginCoin="USDT", planType="normal_plan")
+        response = await self.contract.cancel_trigger_order(productType="USDT-FUTURES", orderIdList=[{"orderId": "123", "clientOid": ""}], symbol="BTCUSDT", marginCoin="USDT", planType="normal_plan")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/order/cancel-plan-order",
             body={'productType': 'USDT-FUTURES', 'orderIdList': [{'orderId': '123', 'clientOid': ''}], 'symbol': 'BTCUSDT', 'marginCoin': 'USDT', 'planType': 'normal_plan'}
         )
+        await self.asyncTearDown()
 
-    def test_change_leverage(self):
+    async def test_change_leverage(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.change_leverage(symbol="BTCUSDT", productType="USDT-FUTURES", leverage="10", marginCoin="USDT")
+        response = await self.contract.change_leverage(symbol="BTCUSDT", productType="USDT-FUTURES", leverage="10", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/account/set-leverage",
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'leverage': '10', 'marginCoin': 'USDT'}
         )
+        await self.asyncTearDown()
 
-    def test_change_margin_mode(self):
+    async def test_change_margin_mode(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.change_margin_mode(symbol="BTCUSDT", productType="USDT-FUTURES", marginMode="crossed", marginCoin="USDT")
+        response = await self.contract.change_margin_mode(symbol="BTCUSDT", productType="USDT-FUTURES", marginMode="crossed", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/mix/account/set-margin-mode",
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'marginMode': 'crossed', 'marginCoin': 'USDT'}
         )
+        await self.asyncTearDown()
 
-    def test_change_position_mode(self):
+    async def test_change_position_mode(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.change_position_mode(productType="USDT-FUTURES", holdMode="single_hold")
+        response = await self.contract.change_position_mode(productType="USDT-FUTURES", holdMode="single_hold")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -1039,11 +1153,11 @@ class TestContract(unittest.TestCase):
             body={'productType': 'USDT-FUTURES', 'holdMode': 'single_hold'}
         )
 
-    def test_change_the_product_line_leverage(self):
+    async def test_change_the_product_line_leverage(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.change_the_product_line_leverage(productType="USDT-FUTURES", leverage="10", marginCoin="USDT")
+        response = await self.contract.change_the_product_line_leverage(productType="USDT-FUTURES", leverage="10", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -1051,11 +1165,11 @@ class TestContract(unittest.TestCase):
             body={'productType': 'USDT-FUTURES', 'leverage': '10', 'marginCoin': 'USDT'}
         )
 
-    def test_flash_close_position(self):
+    async def test_flash_close_position(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.flash_close_position(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT", holdSide="long")
+        response = await self.contract.flash_close_position(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT", holdSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -1063,11 +1177,11 @@ class TestContract(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'marginCoin': 'USDT', 'holdSide': 'long'}
         )
 
-    def test_get_account_bills(self):
+    async def test_get_account_bills(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_account_bills(productType="USDT-FUTURES", marginCoin="USDT", startTime="123", endTime="456", bizType="transfer", bizSubType="deposit", limit="10", idLessThan="789")
+        response = await self.contract.get_account_bills(productType="USDT-FUTURES", marginCoin="USDT", startTime="123", endTime="456", bizType="transfer", bizSubType="deposit", limit="10", idLessThan="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1075,11 +1189,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'marginCoin': 'USDT', 'startTime': '123', 'endTime': '456', 'bizType': 'transfer', 'bizSubType': 'deposit', 'limit': '10', 'idLessThan': '789'}
         )
 
-    def test_get_account_list(self):
+    async def test_get_account_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_account_list(productType="USDT-FUTURES")
+        response = await self.contract.get_account_list(productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1087,11 +1201,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_single_account(self):
+    async def test_get_single_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_single_account(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT")
+        response = await self.contract.get_single_account(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1099,11 +1213,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'marginCoin': 'USDT'}
         )
 
-    def test_get_subaccount_assets(self):
+    async def test_get_subaccount_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_subaccount_assets(productType="USDT-FUTURES")
+        response = await self.contract.get_subaccount_assets(productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1111,11 +1225,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_usdt_m_futures_interest_history(self):
+    async def test_get_usdt_m_futures_interest_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_usdt_m_futures_interest_history(productType="USDT-FUTURES", coin="USDT", idLessThan="123", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.contract.get_usdt_m_futures_interest_history(productType="USDT-FUTURES", coin="USDT", idLessThan="123", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1123,11 +1237,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'coin': 'USDT', 'idLessThan': '123', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_my_estimated_open_count(self):
+    async def test_my_estimated_open_count(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.my_estimated_open_count(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT", openAmount="5000", openPrice="23189.5", leverage="20")
+        response = await self.contract.my_estimated_open_count(symbol="BTCUSDT", productType="USDT-FUTURES", marginCoin="USDT", openAmount="5000", openPrice="23189.5", leverage="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1135,11 +1249,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'marginCoin': 'USDT', 'openAmount': '5000', 'openPrice': '23189.5', 'leverage': '20'}
         )
 
-    def test_set_isolated_position_auto_margin(self):
+    async def test_set_isolated_position_auto_margin(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.set_isolated_position_auto_margin(symbol="BTCUSDT", autoMargin="on", marginCoin="USDT", holdSide="long")
+        response = await self.contract.set_isolated_position_auto_margin(symbol="BTCUSDT", autoMargin="on", marginCoin="USDT", holdSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -1147,11 +1261,11 @@ class TestContract(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'autoMargin': 'on', 'marginCoin': 'USDT', 'holdSide': 'long'}
         )
 
-    def test_set_usdt_m_futures_asset_mode(self):
+    async def test_set_usdt_m_futures_asset_mode(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.set_usdt_m_futures_asset_mode(productType="USDT-FUTURES", assetMode="union")
+        response = await self.contract.set_usdt_m_futures_asset_mode(productType="USDT-FUTURES", assetMode="union")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -1159,11 +1273,11 @@ class TestContract(unittest.TestCase):
             body={'productType': 'USDT-FUTURES', 'assetMode': 'union'}
         )
 
-    def test_simultaneous_stop_profit_and_stop_loss_plan_orders(self):
+    async def test_simultaneous_stop_profit_and_stop_loss_plan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.simultaneous_stop_profit_and_stop_loss_plan_orders(
+        response = await self.contract.simultaneous_stop_profit_and_stop_loss_plan_orders(
             marginCoin="USDT",
             productType="USDT-FUTURES",
             symbol="BTCUSDT",
@@ -1193,11 +1307,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_stop_profit_and_stop_loss_plan_orders(self):
+    async def test_stop_profit_and_stop_loss_plan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.stop_profit_and_stop_loss_plan_orders(
+        response = await self.contract.stop_profit_and_stop_loss_plan_orders(
             marginCoin="USDT",
             productType="USDT-FUTURES",
             symbol="BTCUSDT",
@@ -1225,11 +1339,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_trigger_sub_order(self):
+    async def test_trigger_sub_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.trigger_sub_order(planType="normal_plan", planOrderId="123", productType="USDT-FUTURES")
+        response = await self.contract.trigger_sub_order(planType="normal_plan", planOrderId="123", productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1237,11 +1351,11 @@ class TestContract(unittest.TestCase):
             params={'planType': 'normal_plan', 'planOrderId': '123', 'productType': 'USDT-FUTURES'}
         )
 
-    def test_vip_fee_rate(self):
+    async def test_vip_fee_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.vip_fee_rate()
+        response = await self.contract.vip_fee_rate()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1249,11 +1363,11 @@ class TestContract(unittest.TestCase):
             params={}
         )
 
-    def test_get_history_transactions(self):
+    async def test_get_history_transactions(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_history_transactions(symbol="BTCUSDT", productType="usdt-futures", limit="100", idLessThan="123", startTime="1678886400000", endTime="1678886400000")
+        response = await self.contract.get_history_transactions(symbol="BTCUSDT", productType="usdt-futures", limit="100", idLessThan="123", startTime="1678886400000", endTime="1678886400000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1261,11 +1375,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'usdt-futures', 'limit': '100', 'idLessThan': '123', 'startTime': '1678886400000', 'endTime': '1678886400000'}
         )
 
-    def test_place_order(self):
+    async def test_place_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.place_order(
+        response = await self.contract.place_order(
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
             marginMode="isolated",
@@ -1297,11 +1411,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_place_trigger_order(self):
+    async def test_place_trigger_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.place_trigger_order(
+        response = await self.contract.place_trigger_order(
             planType="normal_plan",
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
@@ -1337,11 +1451,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_reversal(self):
+    async def test_reversal(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.reversal(
+        response = await self.contract.reversal(
             symbol="BTCUSDT",
             marginCoin="USDT",
             productType="USDT-FUTURES",
@@ -1365,11 +1479,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_ticker(self):
+    async def test_get_ticker(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_ticker(symbol="BTCUSDT", productType="USDT-FUTURES")
+        response = await self.contract.get_ticker(symbol="BTCUSDT", productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1377,11 +1491,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_all_positions(self):
+    async def test_get_all_positions(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_all_positions(productType="USDT-FUTURES", marginCoin="USDT")
+        response = await self.contract.get_all_positions(productType="USDT-FUTURES", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1389,11 +1503,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'marginCoin': 'USDT'}
         )
 
-    def test_get_all_tickers(self):
+    async def test_get_all_tickers(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_all_tickers(productType="USDT-FUTURES")
+        response = await self.contract.get_all_tickers(productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1401,11 +1515,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_candlestick_data(self):
+    async def test_get_candlestick_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_candlestick_data(
+        response = await self.contract.get_candlestick_data(
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
             granularity="5m",
@@ -1429,11 +1543,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_contract_oi_limit(self):
+    async def test_get_contract_oi_limit(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_contract_oi_limit(productType="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.contract.get_contract_oi_limit(productType="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1441,11 +1555,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_contract_config(self):
+    async def test_get_contract_config(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_contract_config(productType="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.contract.get_contract_config(productType="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1453,11 +1567,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_current_funding_rate(self):
+    async def test_get_current_funding_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_current_funding_rate(productType="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.contract.get_current_funding_rate(productType="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1465,11 +1579,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_discount_rate(self):
+    async def test_get_discount_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_discount_rate()
+        response = await self.contract.get_discount_rate()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1481,11 +1595,11 @@ class TestContract(unittest.TestCase):
 
     
 
-    def test_get_historical_funding_rates(self):
+    async def test_get_historical_funding_rates(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_historical_funding_rates(
+        response = await self.contract.get_historical_funding_rates(
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
             pageSize="20",
@@ -1503,11 +1617,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_historical_index_price_candlestick(self):
+    async def test_get_historical_index_price_candlestick(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_historical_index_price_candlestick(
+        response = await self.contract.get_historical_index_price_candlestick(
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
             granularity="5m",
@@ -1529,11 +1643,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_historical_mark_price_candlestick(self):
+    async def test_get_historical_mark_price_candlestick(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_historical_mark_price_candlestick(
+        response = await self.contract.get_historical_mark_price_candlestick(
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
             granularity="5m",
@@ -1555,11 +1669,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_historical_transaction_details(self):
+    async def test_get_historical_transaction_details(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"fillList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_historical_transaction_details(
+        response = await self.contract.get_historical_transaction_details(
             productType="USDT-FUTURES",
             orderId="123",
             symbol="BTCUSDT",
@@ -1583,11 +1697,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_interest_exchange_rate(self):
+    async def test_get_interest_exchange_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_interest_exchange_rate()
+        response = await self.contract.get_interest_exchange_rate()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1595,11 +1709,11 @@ class TestContract(unittest.TestCase):
             params={}
         )
 
-    def test_get_interest_rate_history(self):
+    async def test_get_interest_rate_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_interest_rate_history(coin="USDT")
+        response = await self.contract.get_interest_rate_history(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1607,11 +1721,11 @@ class TestContract(unittest.TestCase):
             params={'coin': 'USDT'}
         )
 
-    def test_get_mark_index_market_prices(self):
+    async def test_get_mark_index_market_prices(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_mark_index_market_prices(symbol="BTCUSDT", productType="USDT-FUTURES")
+        response = await self.contract.get_mark_index_market_prices(symbol="BTCUSDT", productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1619,11 +1733,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_merge_market_depth(self):
+    async def test_get_merge_market_depth(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_merge_market_depth(symbol="BTCUSDT", productType="USDT-FUTURES", precision="scale0", limit="1")
+        response = await self.contract.get_merge_market_depth(symbol="BTCUSDT", productType="USDT-FUTURES", precision="scale0", limit="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1631,11 +1745,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'precision': 'scale0', 'limit': '1'}
         )
 
-    def test_get_next_funding_time(self):
+    async def test_get_next_funding_time(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_next_funding_time(symbol="BTCUSDT", productType="USDT-FUTURES")
+        response = await self.contract.get_next_funding_time(symbol="BTCUSDT", productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1643,11 +1757,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_open_interest(self):
+    async def test_get_open_interest(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_open_interest(symbol="BTCUSDT", productType="USDT-FUTURES")
+        response = await self.contract.get_open_interest(symbol="BTCUSDT", productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1655,11 +1769,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_recent_transactions(self):
+    async def test_get_recent_transactions(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_recent_transactions(symbol="BTCUSDT", productType="USDT-FUTURES", limit="100")
+        response = await self.contract.get_recent_transactions(symbol="BTCUSDT", productType="USDT-FUTURES", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1667,11 +1781,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'limit': '100'}
         )
 
-    def test_get_history_order(self):
+    async def test_get_history_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"entrustedList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_history_order(
+        response = await self.contract.get_history_order(
             productType="USDT-FUTURES",
             orderId="123",
             clientOid="abc",
@@ -1699,11 +1813,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_history_trigger_order(self):
+    async def test_get_history_trigger_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"entrustedList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_history_trigger_order(
+        response = await self.contract.get_history_trigger_order(
             planType="normal_plan",
             productType="USDT-FUTURES",
             orderId="123",
@@ -1733,11 +1847,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_modify_order(self):
+    async def test_modify_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.modify_order(
+        response = await self.contract.modify_order(
             symbol="BTCUSDT",
             productType="USDT-FUTURES",
             newClientOid="new_abc",
@@ -1759,11 +1873,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_modify_the_stop_profit_and_stop_loss_plan_order(self):
+    async def test_modify_the_stop_profit_and_stop_loss_plan_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.modify_the_stop_profit_and_stop_loss_plan_order(
+        response = await self.contract.modify_the_stop_profit_and_stop_loss_plan_order(
             marginCoin="USDT",
             productType="USDT-FUTURES",
             symbol="BTCUSDT",
@@ -1791,11 +1905,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_modify_trigger_order(self):
+    async def test_modify_trigger_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.modify_trigger_order(
+        response = await self.contract.modify_trigger_order(
             productType="USDT-FUTURES",
             orderId="123",
             newSize="0.002",
@@ -1817,11 +1931,11 @@ class TestContract(unittest.TestCase):
             }
         )
 
-    def test_get_order_detail(self):
+    async def test_get_order_detail(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_order_detail(symbol="BTCUSDT", productType="USDT-FUTURES", orderId="123", clientOid="abc")
+        response = await self.contract.get_order_detail(symbol="BTCUSDT", productType="USDT-FUTURES", orderId="123", clientOid="abc")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1829,11 +1943,11 @@ class TestContract(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'productType': 'USDT-FUTURES', 'orderId': '123', 'clientOid': 'abc'}
         )
 
-    def test_get_order_fill_details(self):
+    async def test_get_order_fill_details(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_order_fill_details(productType="USDT-FUTURES", orderId="123", symbol="BTCUSDT", idLessThan="789", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.contract.get_order_fill_details(productType="USDT-FUTURES", orderId="123", symbol="BTCUSDT", idLessThan="789", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1841,11 +1955,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'orderId': '123', 'symbol': 'BTCUSDT', 'idLessThan': '789', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_get_pending_orders(self):
+    async def test_get_pending_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_pending_orders(productType="USDT-FUTURES", orderId="123", clientOid="abc", symbol="BTCUSDT", status="live", idLessThan="789", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.contract.get_pending_orders(productType="USDT-FUTURES", orderId="123", clientOid="abc", symbol="BTCUSDT", status="live", idLessThan="789", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1853,11 +1967,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'orderId': '123', 'clientOid': 'abc', 'symbol': 'BTCUSDT', 'status': 'live', 'idLessThan': '789', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_get_pending_trigger_order(self):
+    async def test_get_pending_trigger_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_pending_trigger_order(planType="normal_plan", productType="USDT-FUTURES", orderId="123", clientOid="abc", symbol="BTCUSDT", idLessThan="789", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.contract.get_pending_trigger_order(planType="normal_plan", productType="USDT-FUTURES", orderId="123", clientOid="abc", symbol="BTCUSDT", idLessThan="789", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1865,11 +1979,11 @@ class TestContract(unittest.TestCase):
             params={'planType': 'normal_plan', 'productType': 'USDT-FUTURES', 'orderId': '123', 'clientOid': 'abc', 'symbol': 'BTCUSDT', 'idLessThan': '789', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_get_position_adl_rank(self):
+    async def test_get_position_adl_rank(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_position_adl_rank(productType="USDT-FUTURES")
+        response = await self.contract.get_position_adl_rank(productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1877,11 +1991,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_position_tier(self):
+    async def test_get_position_tier(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_position_tier(productType="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.contract.get_position_tier(productType="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1889,11 +2003,11 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_single_position(self):
+    async def test_get_single_position(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.contract.get_single_position(productType="USDT-FUTURES", symbol="BTCUSDT", marginCoin="USDT")
+        response = await self.contract.get_single_position(productType="USDT-FUTURES", symbol="BTCUSDT", marginCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -1901,7 +2015,17 @@ class TestContract(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT', 'marginCoin': 'USDT'}
         )
 
-    def test_get_historical_position(self):
+    async def test_get_historical_position(self):
+        expected_response = {"code": "00000", "msg": "success", "data": {"list": []}}
+        self.mock_client._send_request.return_value = expected_response
+
+        response = await self.contract.get_historical_position(productType="USDT-FUTURES", symbol="BTCUSDT", idLessThan="123", startTime="1678886400000", endTime="1678886400000", limit="100")
+        self.assertEqual(response, expected_response)
+        self.mock_client._send_request.assert_called_once_with(
+            "GET",
+            "/api/v2/mix/position/history-position",
+            params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT', 'idLessThan': '123', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
+        )
         expected_response = {"code": "00000", "msg": "success", "data": {"list": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -1915,26 +2039,40 @@ class TestContract(unittest.TestCase):
 
 class TestCopyTrading(unittest.TestCase):
     def setUp(self):
+        asyncio.run(self.asyncSetUp())
+
+    def tearDown(self):
+        asyncio.run(self.asyncTearDown())
+
+    async def asyncSetUp(self):
         self.mock_client = Mock()
         self.copytrading = CopyTrading(self.mock_client)
 
-    def test_copytrading_initialization(self):
-        self.assertEqual(self.copytrading.client, self.mock_client)
+    async def asyncTearDown(self):
+        pass
 
-    def test_add_or_modify_following_configurations(self):
+    async def test_copytrading_initialization(self):
+        await self.asyncSetUp()
+        self.assertEqual(self.copytrading.client, self.mock_client)
+        await self.asyncTearDown()
+
+    async def test_add_or_modify_following_configurations(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
         settings = {"copyType": "fixed", "copyAmount": "10", "copySymbol": "BTCUSDT"}
-        response = self.copytrading.add_or_modify_following_configurations(traderId="123", settings=settings, autoCopy="true", mode="normal")
+        response = await self.copytrading.add_or_modify_following_configurations(traderId="123", settings=settings, autoCopy="true", mode="normal")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/copy/spot-follower/settings",
             body={'traderId': '123', 'settings': settings, 'autoCopy': 'true', 'mode': 'normal'}
         )
+        await self.asyncTearDown()
 
-    def test_set_mix_copy_trade_settings(self):
+    async def test_set_mix_copy_trade_settings(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
@@ -1948,7 +2086,7 @@ class TestCopyTrading(unittest.TestCase):
             "traceValue": "330",
             "maxHoldSize": "5000"
         }]
-        response = self.copytrading.set_mix_copy_trade_settings(traderId="123123123", settings=settings, autoCopy="on", mode="advanced")
+        response = await self.copytrading.set_mix_copy_trade_settings(traderId="123123123", settings=settings, autoCopy="on", mode="advanced")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -1960,32 +2098,38 @@ class TestCopyTrading(unittest.TestCase):
                 'mode': 'advanced'
             }
         )
+        await self.asyncTearDown()
 
-    def test_cancel_follow(self):
+    async def test_cancel_follow(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.cancel_follow(traderId="123")
+        response = await self.copytrading.cancel_follow(traderId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/copy/spot-follower/cancel-trader",
             body={'traderId': '123'}
         )
+        await self.asyncTearDown()
 
-    def test_unfollow_mix_trader(self):
+    async def test_unfollow_mix_trader(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.unfollow_mix_trader(traderId="123123")
+        response = await self.copytrading.unfollow_mix_trader(traderId="123123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/copy/mix-follower/cancel-trader",
             body={'traderId': '123123'}
         )
+        await self.asyncTearDown()
 
-    def test_change_copy_trade_symbol_setting(self):
+    async def test_change_copy_trade_symbol_setting(self):
+        await self.asyncSetUp()
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -1997,19 +2141,20 @@ class TestCopyTrading(unittest.TestCase):
             "copyType": "fixed",
             "copyAmount": "10"
         }]
-        response = self.copytrading.change_copy_trade_symbol_setting(settingList=setting_list)
+        response = await self.copytrading.change_copy_trade_symbol_setting(settingList=setting_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
             "/api/v2/copy/mix-trader/config-setting-symbols",
             body={'settingList': setting_list}
         )
+        await self.asyncTearDown()
 
-    def test_change_global_copy_trade_setting(self):
+    async def test_change_global_copy_trade_setting(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.change_global_copy_trade_setting(enable="true", showTotalEquity="true", showTpsl="true")
+        response = await self.copytrading.change_global_copy_trade_setting(enable="true", showTotalEquity="true", showTpsl="true")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2017,12 +2162,12 @@ class TestCopyTrading(unittest.TestCase):
             body={'enable': 'true', 'showTotalEquity': 'true', 'showTpsl': 'true'}
         )
 
-    def test_set_spot_copytrade_symbols(self):
+    async def test_set_spot_copytrade_symbols(self):
         expected_response = {"code": "00000", "msg": "success", "data": ""}
         self.mock_client._send_request.return_value = expected_response
 
         symbol_list = ["ethusdt", "btcusdt"]
-        response = self.copytrading.set_spot_copytrade_symbols(symbolList=symbol_list, settingType="add")
+        response = await self.copytrading.set_spot_copytrade_symbols(symbolList=symbol_list, settingType="add")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2030,11 +2175,11 @@ class TestCopyTrading(unittest.TestCase):
             body={'symbolList': symbol_list, 'settingType': 'add'}
         )
 
-    def test_close_tracking_order(self):
+    async def test_close_tracking_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.close_tracking_order(productType="USDT-FUTURES", trackingNo="123", symbol="BTCUSDT")
+        response = await self.copytrading.close_tracking_order(productType="USDT-FUTURES", trackingNo="123", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2042,11 +2187,11 @@ class TestCopyTrading(unittest.TestCase):
             body={'productType': 'USDT-FUTURES', 'trackingNo': '123', 'symbol': 'BTCUSDT'}
         )
 
-    def test_close_positions(self):
+    async def test_close_positions(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderIdList": ["123", "321"]}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.close_positions(productType="USDT-FUTURES", trackingNo="1", symbol="BTCUSDT", marginCoin="USDT", marginMode="isolated", holdSide="long")
+        response = await self.copytrading.close_positions(productType="USDT-FUTURES", trackingNo="1", symbol="BTCUSDT", marginCoin="USDT", marginMode="isolated", holdSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2054,11 +2199,11 @@ class TestCopyTrading(unittest.TestCase):
             body={'productType': 'USDT-FUTURES', 'trackingNo': '1', 'symbol': 'BTCUSDT', 'marginCoin': 'USDT', 'marginMode': 'isolated', 'holdSide': 'long'}
         )
 
-    def test_copy_settings(self):
+    async def test_copy_settings(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.copy_settings(
+        response = await self.copytrading.copy_settings(
             traderId="123",
             copyAmount="100",
             copyAllPostions="true",
@@ -2088,11 +2233,11 @@ class TestCopyTrading(unittest.TestCase):
             }
         )
 
-    def test_create_copy_apikey(self):
+    async def test_create_copy_apikey(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.create_copy_apikey(passphrase="test_passphrase")
+        response = await self.copytrading.create_copy_apikey(passphrase="test_passphrase")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2100,11 +2245,11 @@ class TestCopyTrading(unittest.TestCase):
             body={'passphrase': 'test_passphrase'}
         )
 
-    def test_modify_tracking_order_tpsl(self):
+    async def test_modify_tracking_order_tpsl(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.modify_tracking_order_tpsl(trackingNo="123", productType="USDT-FUTURES", stopSurplusPrice="20000", stopLossPrice="19000")
+        response = await self.copytrading.modify_tracking_order_tpsl(trackingNo="123", productType="USDT-FUTURES", stopSurplusPrice="20000", stopLossPrice="19000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2112,11 +2257,11 @@ class TestCopyTrading(unittest.TestCase):
             body={'trackingNo': '123', 'productType': 'USDT-FUTURES', 'stopSurplusPrice': '20000', 'stopLossPrice': '19000'}
         )
 
-    def test_get_copy_trade_settings(self):
+    async def test_get_copy_trade_settings(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_copy_trade_settings(traderId="123")
+        response = await self.copytrading.get_copy_trade_settings(traderId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2124,11 +2269,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'traderId': '123'}
         )
 
-    def test_get_copy_trade_symbol_settings(self):
+    async def test_get_copy_trade_symbol_settings(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_copy_trade_symbol_settings(productType="USDT-FUTURES")
+        response = await self.copytrading.get_copy_trade_symbol_settings(productType="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2136,11 +2281,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'productType': 'USDT-FUTURES'}
         )
 
-    def test_get_copytrade_configuration(self):
+    async def test_get_copytrade_configuration(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_copytrade_configuration()
+        response = await self.copytrading.get_copytrade_configuration()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2148,11 +2293,11 @@ class TestCopyTrading(unittest.TestCase):
             params={}
         )
 
-    def test_get_current_copy_trade_orders(self):
+    async def test_get_current_copy_trade_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_current_copy_trade_orders(symbol="BTCUSDT", traderId="123", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.copytrading.get_current_copy_trade_orders(symbol="BTCUSDT", traderId="123", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2160,11 +2305,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'traderId': '123', 'idLessThan': '789', 'idGreaterThan': '456', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_get_current_tracking_orders(self):
+    async def test_get_current_tracking_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_current_tracking_orders(productType="USDT-FUTURES", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100", symbol="BTCUSDT", traderId="123")
+        response = await self.copytrading.get_current_tracking_orders(productType="USDT-FUTURES", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100", symbol="BTCUSDT", traderId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2172,11 +2317,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'idLessThan': '789', 'idGreaterThan': '456', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100', 'symbol': 'BTCUSDT', 'traderId': '123'}
         )
 
-    def test_get_data_indicator_statistics(self):
+    async def test_get_data_indicator_statistics(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_data_indicator_statistics()
+        response = await self.copytrading.get_data_indicator_statistics()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2184,11 +2329,11 @@ class TestCopyTrading(unittest.TestCase):
             params={}
         )
 
-    def test_get_follow_configuration(self):
+    async def test_get_follow_configuration(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_follow_configuration(traderId="123")
+        response = await self.copytrading.get_follow_configuration(traderId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2196,11 +2341,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'traderId': '123'}
         )
 
-    def test_get_follow_limit(self):
+    async def test_get_follow_limit(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_follow_limit(productType="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.copytrading.get_follow_limit(productType="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2208,11 +2353,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'productType': 'USDT-FUTURES', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_history_profit_share_detail(self):
+    async def test_get_history_profit_share_detail(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_history_profit_share_detail(coin="USDT", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.copytrading.get_history_profit_share_detail(coin="USDT", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2220,11 +2365,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'coin': 'USDT', 'idLessThan': '789', 'idGreaterThan': '456', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_get_history_profit_sharing_details(self):
+    async def test_get_history_profit_sharing_details(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_history_profit_sharing_details(idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100", coin="USDT")
+        response = await self.copytrading.get_history_profit_sharing_details(idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2232,11 +2377,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'idLessThan': '789', 'idGreaterThan': '456', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100', 'coin': 'USDT'}
         )
 
-    def test_get_history_tracking_orders(self):
+    async def test_get_history_tracking_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_history_tracking_orders(symbol="BTCUSDT", traderId="123", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100")
+        response = await self.copytrading.get_history_tracking_orders(symbol="BTCUSDT", traderId="123", idLessThan="789", idGreaterThan="456", startTime="1678886400000", endTime="1678886400000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2244,11 +2389,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'traderId': '123', 'idLessThan': '789', 'idGreaterThan': '456', 'startTime': '1678886400000', 'endTime': '1678886400000', 'limit': '100'}
         )
 
-    def test_get_my_followers(self):
+    async def test_get_my_followers(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_my_followers(pageNo="1", pageSize="10", startTime="123", endTime="456")
+        response = await self.copytrading.get_my_followers(pageNo="1", pageSize="10", startTime="123", endTime="456")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2256,11 +2401,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'pageNo': '1', 'pageSize': '10', 'startTime': '123', 'endTime': '456'}
         )
 
-    def test_get_spot_my_followers(self):
+    async def test_get_spot_my_followers(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_spot_my_followers(pageNo="1", pageSize="10", startTime="123", endTime="456")
+        response = await self.copytrading.get_spot_my_followers(pageNo="1", pageSize="10", startTime="123", endTime="456")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2268,11 +2413,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'pageNo': '1', 'pageSize': '10', 'startTime': '123', 'endTime': '456'}
         )
 
-    def test_get_my_traders(self):
+    async def test_get_my_traders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_my_traders(startTime="123", endTime="456", pageNo="1", pageSize="10")
+        response = await self.copytrading.get_my_traders(startTime="123", endTime="456", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2280,11 +2425,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10'}
         )
 
-    def test_get_spot_my_traders(self):
+    async def test_get_spot_my_traders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_spot_my_traders(startTime="123", endTime="456", pageNo="1", pageSize="10")
+        response = await self.copytrading.get_spot_my_traders(startTime="123", endTime="456", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2292,11 +2437,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'startTime': '123', 'endTime': '456', 'pageNo': '1', 'pageSize': '10'}
         )
 
-    def test_get_profit_share_group_by_coin_date(self):
+    async def test_get_profit_share_group_by_coin_date(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_profit_share_group_by_coin_date(pageSize="20", pageNo="1")
+        response = await self.copytrading.get_profit_share_group_by_coin_date(pageSize="20", pageNo="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2352,11 +2497,11 @@ class TestCopyTrading(unittest.TestCase):
             params={'traderId': '123'}
         )
 
-    def test_get_tracking_order_summary(self):
+    async def test_get_tracking_order_summary(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.copytrading.get_tracking_order_summary()
+        response = await self.copytrading.get_tracking_order_summary()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2453,14 +2598,17 @@ class TestEarn(unittest.TestCase):
         self.mock_client = Mock()
         self.earn = Earn(self.mock_client)
 
+    def tearDown(self):
+        pass
+
     def test_earn_initialization(self):
         self.assertEqual(self.earn.client, self.mock_client)
 
-    def test_borrow(self):
+    async def test_borrow(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.borrow(loanCoin="ETH", pledgeCoin="USDT", daily="SEVEN", loanAmount="0.01")
+        response = await self.earn.borrow(loanCoin="ETH", pledgeCoin="USDT", daily="SEVEN", loanAmount="0.01")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2470,7 +2618,7 @@ class TestEarn(unittest.TestCase):
 
         # Test with pledgeAmount
         self.mock_client.reset_mock() # Reset mock to check new call
-        response = self.earn.borrow(loanCoin="ETH", pledgeCoin="USDT", daily="SEVEN", pledgeAmount="100")
+        response = await self.earn.borrow(loanCoin="ETH", pledgeCoin="USDT", daily="SEVEN", pledgeAmount="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2480,13 +2628,13 @@ class TestEarn(unittest.TestCase):
 
         # Test with neither pledgeAmount nor loanAmount
         with self.assertRaises(ValueError):
-            self.earn.borrow(loanCoin="ETH", pledgeCoin="USDT", daily="SEVEN")
+            await self.earn.borrow(loanCoin="ETH", pledgeCoin="USDT", daily="SEVEN")
 
-    def test_get_earn_account_assets(self):
+    async def test_get_earn_account_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": [{"coin": "BTC", "amount": "0.1"}, {"coin": "USDT", "amount": "400"}]}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_earn_account_assets(coin="USDT")
+        response = await self.earn.get_earn_account_assets(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2495,7 +2643,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_earn_account_assets()
+        response = await self.earn.get_earn_account_assets()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2503,11 +2651,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_currency_list(self):
+    async def test_get_currency_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"loanInfos": [], "pledgeInfos": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_currency_list(coin="USDT")
+        response = await self.earn.get_currency_list(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2516,7 +2664,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_currency_list()
+        response = await self.earn.get_currency_list()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2524,11 +2672,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_debts(self):
+    async def test_get_debts(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"pledgeInfos": [], "loanInfos": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_debts()
+        response = await self.earn.get_debts()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2536,11 +2684,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_est_interest_and_borrowable(self):
+    async def test_get_est_interest_and_borrowable(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"hourInterest": "0.00133436", "loanAmount": "216.2654"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_est_interest_and_borrowable(loanCoin="USDT", pledgeCoin="ETH", daily="SEVEN", pledgeAmount="0.2")
+        response = await self.earn.get_est_interest_and_borrowable(loanCoin="USDT", pledgeCoin="ETH", daily="SEVEN", pledgeAmount="0.2")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2548,11 +2696,11 @@ class TestEarn(unittest.TestCase):
             params={'loanCoin': 'USDT', 'pledgeCoin': 'ETH', 'daily': 'SEVEN', 'pledgeAmount': '0.2'}
         )
 
-    def test_get_liquidation_records(self):
+    async def test_get_liquidation_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_liquidation_records(startTime="1685957902000", endTime="1691228302423", orderId="1", loanCoin="TRX", pledgeCoin="USDT", status="COMPLETE", pageNo="1", pageSize="10")
+        response = await self.earn.get_liquidation_records(startTime="1685957902000", endTime="1691228302423", orderId="1", loanCoin="TRX", pledgeCoin="USDT", status="COMPLETE", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2561,7 +2709,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_liquidation_records(startTime="1685957902000", endTime="1691228302423")
+        response = await self.earn.get_liquidation_records(startTime="1685957902000", endTime="1691228302423")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2569,11 +2717,11 @@ class TestEarn(unittest.TestCase):
             params={'startTime': '1685957902000', 'endTime': '1691228302423'}
         )
 
-    def test_get_loan_history(self):
+    async def test_get_loan_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_loan_history(startTime="1685957902000", endTime="1691228302423", orderId="1", loanCoin="TRX", pledgeCoin="USDT", status="REPAY", pageNo="1", pageSize="10")
+        response = await self.earn.get_loan_history(startTime="1685957902000", endTime="1691228302423", orderId="1", loanCoin="TRX", pledgeCoin="USDT", status="REPAY", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2582,7 +2730,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_loan_history(startTime="1685957902000", endTime="1691228302423")
+        response = await self.earn.get_loan_history(startTime="1685957902000", endTime="1691228302423")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2590,11 +2738,11 @@ class TestEarn(unittest.TestCase):
             params={'startTime': '1685957902000', 'endTime': '1691228302423'}
         )
 
-    def test_get_loan_orders(self):
+    async def test_get_loan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_loan_orders(orderId="1", loanCoin="ETH", pledgeCoin="USDT")
+        response = await self.earn.get_loan_orders(orderId="1", loanCoin="ETH", pledgeCoin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2603,7 +2751,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_loan_orders()
+        response = await self.earn.get_loan_orders()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2611,11 +2759,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_pledge_rate_history(self):
+    async def test_get_pledge_rate_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_pledge_rate_history(startTime="1685957902000", endTime="1691228302423", orderId="1", reviseSide="down", pledgeCoin="USDT", pageNo="1", pageSize="10")
+        response = await self.earn.get_pledge_rate_history(startTime="1685957902000", endTime="1691228302423", orderId="1", reviseSide="down", pledgeCoin="USDT", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2624,7 +2772,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_pledge_rate_history(startTime="1685957902000", endTime="1691228302423")
+        response = await self.earn.get_pledge_rate_history(startTime="1685957902000", endTime="1691228302423")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2632,11 +2780,11 @@ class TestEarn(unittest.TestCase):
             params={'startTime': '1685957902000', 'endTime': '1691228302423'}
         )
 
-    def test_get_repay_history(self):
+    async def test_get_repay_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_repay_history(startTime="1685957902000", endTime="1691228302423", orderId="1", loanCoin="TRX", pledgeCoin="USDT", pageNo="1", pageSize="10")
+        response = await self.earn.get_repay_history(startTime="1685957902000", endTime="1691228302423", orderId="1", loanCoin="TRX", pledgeCoin="USDT", pageNo="1", pageSize="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2645,7 +2793,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_repay_history(startTime="1685957902000", endTime="1691228302423")
+        response = await self.earn.get_repay_history(startTime="1685957902000", endTime="1691228302423")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2653,11 +2801,11 @@ class TestEarn(unittest.TestCase):
             params={'startTime': '1685957902000', 'endTime': '1691228302423'}
         )
 
-    def test_modify_pledge_rate(self):
+    async def test_modify_pledge_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"loanCoin": "TRX", "pledgeCoin": "USDT", "afterPledgeRate": "60.5"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.modify_pledge_rate(orderId="1", amount="1", pledgeCoin="USDT", reviseType="OUT")
+        response = await self.earn.modify_pledge_rate(orderId="1", amount="1", pledgeCoin="USDT", reviseType="OUT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2665,11 +2813,11 @@ class TestEarn(unittest.TestCase):
             body={'orderId': '1', 'amount': '1', 'pledgeCoin': 'USDT', 'reviseType': 'OUT'}
         )
 
-    def test_redeem_savings(self):
+    async def test_redeem_savings(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "123123123", "status": "2000.000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.redeem_savings(productId="23123123", periodType="flexible", amount="99999999", orderId="1")
+        response = await self.earn.redeem_savings(productId="23123123", periodType="flexible", amount="99999999", orderId="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2678,7 +2826,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.redeem_savings(productId="23123123", periodType="flexible", amount="99999999")
+        response = await self.earn.redeem_savings(productId="23123123", periodType="flexible", amount="99999999")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2686,11 +2834,11 @@ class TestEarn(unittest.TestCase):
             body={'productId': '23123123', 'periodType': 'flexible', 'amount': '99999999'}
         )
 
-    def test_repay(self):
+    async def test_repay(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"loanCoin": "TRX", "pledgeCoin": "USDT", "repayAmount": "1566.23820848", "payInterest": "0.1185634", "repayLoanAmount": "1566.22635214", "repayUnlockAmount": "195"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.repay(orderId="ETH", repayAll="yes", repayUnlock="yes")
+        response = await self.earn.repay(orderId="ETH", repayAll="yes", repayUnlock="yes")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2699,7 +2847,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.repay(orderId="ETH", repayAll="no", amount="100")
+        response = await self.earn.repay(orderId="ETH", repayAll="no", amount="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2707,11 +2855,11 @@ class TestEarn(unittest.TestCase):
             body={'orderId': 'ETH', 'repayAll': 'no', 'amount': '100'}
         )
 
-    def test_get_savings_account(self):
+    async def test_get_savings_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"btcAmount": "0.35821314", "usdtAmount": "9481.55500000", "btc24hEarning": "0.00000009", "usdt24hEarning": "0.00263912", "btcTotalEarning": "0.00000761", "usdtTotalEarning": "0.20145653"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_account()
+        response = await self.earn.get_savings_account()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2719,11 +2867,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_savings_assets(self):
+    async def test_get_savings_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_assets(periodType="fixed", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
+        response = await self.earn.get_savings_assets(periodType="fixed", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2732,7 +2880,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_savings_assets(periodType="flexible")
+        response = await self.earn.get_savings_assets(periodType="flexible")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2740,11 +2888,11 @@ class TestEarn(unittest.TestCase):
             params={'periodType': 'flexible'}
         )
 
-    def test_get_savings_product_list(self):
+    async def test_get_savings_product_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_product_list(coin="BTC", filter="available_and_held")
+        response = await self.earn.get_savings_product_list(coin="BTC", filter="available_and_held")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2753,7 +2901,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_savings_product_list()
+        response = await self.earn.get_savings_product_list()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2761,11 +2909,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_savings_records(self):
+    async def test_get_savings_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_records(periodType="flexible", coin="BGB", orderType="subscribe", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
+        response = await self.earn.get_savings_records(periodType="flexible", coin="BGB", orderType="subscribe", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2774,7 +2922,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_savings_records(periodType="flexible")
+        response = await self.earn.get_savings_records(periodType="flexible")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2782,11 +2930,11 @@ class TestEarn(unittest.TestCase):
             params={'periodType': 'flexible'}
         )
 
-    def test_get_savings_subscription_detail(self):
+    async def test_get_savings_subscription_detail(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"singleMinAmount": "10.000000", "singleMaxAmount": "2000.000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_subscription_detail(productId="123123", periodType="flexible")
+        response = await self.earn.get_savings_subscription_detail(productId="123123", periodType="flexible")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2794,11 +2942,11 @@ class TestEarn(unittest.TestCase):
             params={'productId': '123123', 'periodType': 'flexible'}
         )
 
-    def test_get_savings_subscription_result(self):
+    async def test_get_savings_subscription_result(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"result": "success", "msg": ""}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_subscription_result(productId="123123", periodType="flexible")
+        response = await self.earn.get_savings_subscription_result(productId="123123", periodType="flexible")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2806,11 +2954,11 @@ class TestEarn(unittest.TestCase):
             params={'productId': '123123', 'periodType': 'flexible'}
         )
 
-    def test_get_sharkfin_account(self):
+    async def test_get_sharkfin_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"btcSubscribeAmount": "0.00000000", "usdtSubscribeAmount": "0.00", "btcHistoricalAmount": "0.00000000", "usdtHistoricalAmount": "0.00000000", "btcTotalEarning": "0.00000000", "usdtTotalEarning": "0.00000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_sharkfin_account()
+        response = await self.earn.get_sharkfin_account()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2818,11 +2966,11 @@ class TestEarn(unittest.TestCase):
             params={}
         )
 
-    def test_get_sharkfin_assets(self):
+    async def test_get_sharkfin_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_sharkfin_assets(status="subscribed", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
+        response = await self.earn.get_sharkfin_assets(status="subscribed", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2831,7 +2979,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_sharkfin_assets(status="subscribed")
+        response = await self.earn.get_sharkfin_assets(status="subscribed")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2839,11 +2987,11 @@ class TestEarn(unittest.TestCase):
             params={'status': 'subscribed'}
         )
 
-    def test_get_sharkfin_products(self):
+    async def test_get_sharkfin_products(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_sharkfin_products(coin="ETH", limit="10", idLessThan="1")
+        response = await self.earn.get_sharkfin_products(coin="ETH", limit="10", idLessThan="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2852,7 +3000,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_sharkfin_products(coin="ETH")
+        response = await self.earn.get_sharkfin_products(coin="ETH")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2860,11 +3008,11 @@ class TestEarn(unittest.TestCase):
             params={'coin': 'ETH'}
         )
 
-    def test_get_sharkfin_records(self):
+    async def test_get_sharkfin_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_sharkfin_records(type="subscription", coin="BGB", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
+        response = await self.earn.get_sharkfin_records(type="subscription", coin="BGB", startTime="1659076670000", endTime="1659076670000", limit="10", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2873,7 +3021,7 @@ class TestEarn(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.earn.get_sharkfin_records(type="subscription")
+        response = await self.earn.get_sharkfin_records(type="subscription")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2881,11 +3029,11 @@ class TestEarn(unittest.TestCase):
             params={'type': 'subscription'}
         )
 
-    def test_get_sharkfin_subscription_result(self):
+    async def test_get_sharkfin_subscription_result(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"result": "success", "msg": ""}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_sharkfin_subscription_result(orderId="123123123")
+        response = await self.earn.get_sharkfin_subscription_result(orderId="123123123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2893,11 +3041,11 @@ class TestEarn(unittest.TestCase):
             params={'orderId': '123123123'}
         )
 
-    def test_subscribe_savings(self):
+    async def test_subscribe_savings(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "1313060074239184896"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.subscribe_savings(productId="23123123", periodType="flexible", amount="99999999")
+        response = await self.earn.subscribe_savings(productId="23123123", periodType="flexible", amount="99999999")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2905,11 +3053,11 @@ class TestEarn(unittest.TestCase):
             body={'productId': '23123123', 'periodType': 'flexible', 'amount': '99999999'}
         )
 
-    def test_subscribe_sharkfin(self):
+    async def test_subscribe_sharkfin(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "123123123", "status": "2000.000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.subscribe_sharkfin(productId="23123123", amount="99999999")
+        response = await self.earn.subscribe_sharkfin(productId="23123123", amount="99999999")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2917,11 +3065,11 @@ class TestEarn(unittest.TestCase):
             body={'productId': '23123123', 'amount': '99999999'}
         )
 
-    def test_get_sharkfin_subscription_detail(self):
+    async def test_get_sharkfin_subscription_detail(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productCoin": "BTC", "subscribeCoin": "USDT"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_sharkfin_subscription_detail(productId="1")
+        response = await self.earn.get_sharkfin_subscription_detail(productId="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2929,11 +3077,11 @@ class TestEarn(unittest.TestCase):
             params={'productId': '1'}
         )
 
-    def test_get_savings_redemption_results(self):
+    async def test_get_savings_redemption_results(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"result": "success", "msg": ""}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.earn.get_savings_redemption_results(orderId="123123", periodType="flexible")
+        response = await self.earn.get_savings_redemption_results(orderId="123123", periodType="flexible")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2946,14 +3094,17 @@ class TestInstloan(unittest.TestCase):
         self.mock_client = Mock()
         self.instloan = Instloan(self.mock_client)
 
+    def tearDown(self):
+        pass
+
     def test_instloan_initialization(self):
         self.assertEqual(self.instloan.client, self.mock_client)
 
-    def test_bind_unbind_sub_account_uid_to_risk_unit(self):
+    async def test_bind_unbind_sub_account_uid_to_risk_unit(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.bind_unbind_sub_account_uid_to_risk_unit(uid="xxxxx", operate="bind", riskUnitId="123")
+        response = await self.instloan.bind_unbind_sub_account_uid_to_risk_unit(uid="xxxxx", operate="bind", riskUnitId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2962,7 +3113,7 @@ class TestInstloan(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.instloan.bind_unbind_sub_account_uid_to_risk_unit(uid="xxxxx", operate="unbind")
+        response = await self.instloan.bind_unbind_sub_account_uid_to_risk_unit(uid="xxxxx", operate="unbind")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -2970,11 +3121,11 @@ class TestInstloan(unittest.TestCase):
             body={'uid': 'xxxxx', 'operate': 'unbind'}
         )
 
-    def test_get_loan_orders(self):
+    async def test_get_loan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_loan_orders(orderId="xxxxxxx", startTime="1713645576789", endTime="1713645576789")
+        response = await self.instloan.get_loan_orders(orderId="xxxxxxx", startTime="1713645576789", endTime="1713645576789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2983,7 +3134,7 @@ class TestInstloan(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.instloan.get_loan_orders()
+        response = await self.instloan.get_loan_orders()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -2991,11 +3142,11 @@ class TestInstloan(unittest.TestCase):
             params={}
         )
 
-    def test_get_ltv(self):
+    async def test_get_ltv(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"ltv": "0.6667"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_ltv(riskUnitId="123")
+        response = await self.instloan.get_ltv(riskUnitId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3004,7 +3155,7 @@ class TestInstloan(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.instloan.get_ltv()
+        response = await self.instloan.get_ltv()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3012,11 +3163,11 @@ class TestInstloan(unittest.TestCase):
             params={}
         )
 
-    def test_get_margin_coin_info(self):
+    async def test_get_margin_coin_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productId": "xxxxxxxx", "coinInfo": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_margin_coin_info(productId="xxx")
+        response = await self.instloan.get_margin_coin_info(productId="xxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3024,11 +3175,11 @@ class TestInstloan(unittest.TestCase):
             params={'productId': 'xxx'}
         )
 
-    def test_get_product_info(self):
+    async def test_get_product_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productId": "xxxxxxxx", "leverage": "2"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_product_info(productId="xxx")
+        response = await self.instloan.get_product_info(productId="xxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3036,11 +3187,11 @@ class TestInstloan(unittest.TestCase):
             params={'productId': 'xxx'}
         )
 
-    def test_get_repayment_orders(self):
+    async def test_get_repayment_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_repayment_orders(startTime="1659076670000", endTime="1659076670000", limit="10")
+        response = await self.instloan.get_repayment_orders(startTime="1659076670000", endTime="1659076670000", limit="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3049,7 +3200,7 @@ class TestInstloan(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.instloan.get_repayment_orders()
+        response = await self.instloan.get_repayment_orders()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3057,11 +3208,11 @@ class TestInstloan(unittest.TestCase):
             params={}
         )
 
-    def test_get_risk_unit(self):
+    async def test_get_risk_unit(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"riskUnitId": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_risk_unit()
+        response = await self.instloan.get_risk_unit()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3069,11 +3220,11 @@ class TestInstloan(unittest.TestCase):
             params={}
         )
 
-    def test_get_spot_symbols(self):
+    async def test_get_spot_symbols(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productId": "xxxxxxxx", "spotSymbols": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_spot_symbols(productId="xxx")
+        response = await self.instloan.get_spot_symbols(productId="xxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3082,7 +3233,7 @@ class TestInstloan(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.instloan.get_spot_symbols(productId="xxx")
+        response = await self.instloan.get_spot_symbols(productId="xxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3090,11 +3241,11 @@ class TestInstloan(unittest.TestCase):
             params={'productId': 'xxx'}
         )
 
-    def test_get_transferable_amount(self):
+    async def test_get_transferable_amount(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"coin": "USDT", "transfered": "1223", "userId": "xxxxxxxxxx"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.instloan.get_transferable_amount(coin="USDT", userId="123")
+        response = await self.instloan.get_transferable_amount(coin="USDT", userId="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3103,7 +3254,7 @@ class TestInstloan(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.instloan.get_transferable_amount(coin="USDT")
+        response = await self.instloan.get_transferable_amount(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3116,10 +3267,13 @@ class TestMargin(unittest.TestCase):
         self.mock_client = Mock()
         self.margin = Margin(self.mock_client)
 
+    def tearDown(self):
+        pass
+
     def test_margin_initialization(self):
         self.assertEqual(self.margin.client, self.mock_client)
 
-    def test_cross_batch_cancel_orders(self):
+    async def test_cross_batch_cancel_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -3128,7 +3282,7 @@ class TestMargin(unittest.TestCase):
         }, {
             "clientOid": "mytestOid"
         }]
-        response = self.margin.cross_batch_cancel_orders(symbol="BTCUSDT", orderIdList=order_id_list)
+        response = await self.margin.cross_batch_cancel_orders(symbol="BTCUSDT", orderIdList=order_id_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3136,7 +3290,7 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'orderIdList': order_id_list}
         )
 
-    def test_cross_batch_orders(self):
+    async def test_cross_batch_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -3147,7 +3301,7 @@ class TestMargin(unittest.TestCase):
             "quoteSize": "10000",
             "loanType": "normal"
         }]
-        response = self.margin.cross_batch_orders(symbol="BTCUSDT", orderList=order_list)
+        response = await self.margin.cross_batch_orders(symbol="BTCUSDT", orderList=order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3155,11 +3309,11 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'orderList': order_list}
         )
 
-    def test_cross_borrow(self):
+    async def test_cross_borrow(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"loanId": "2342332432", "coin": "USDT", "borrowAmount": "1.00000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.cross_borrow(coin="USDT", borrowAmount="1", clientOid="test_client_oid")
+        response = await self.margin.cross_borrow(coin="USDT", borrowAmount="1", clientOid="test_client_oid")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3167,11 +3321,11 @@ class TestMargin(unittest.TestCase):
             body={'coin': 'USDT', 'borrowAmount': '1', 'clientOid': 'test_client_oid'}
         )
 
-    def test_cross_cancel_order(self):
+    async def test_cross_cancel_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "BITGET#121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.cross_cancel_order(symbol="BTCUSDT", orderId="12234234321432")
+        response = await self.margin.cross_cancel_order(symbol="BTCUSDT", orderId="12234234321432")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3179,11 +3333,11 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'orderId': '12234234321432'}
         )
 
-    def test_cross_flash_repay(self):
+    async def test_cross_flash_repay(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"repayId": "3423423", "coin": "ETH"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.cross_flash_repay(coin="BTC")
+        response = await self.margin.cross_flash_repay(coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3191,11 +3345,11 @@ class TestMargin(unittest.TestCase):
             body={'coin': 'BTC'}
         )
 
-    def test_cross_place_order(self):
+    async def test_cross_place_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.cross_place_order(
+        response = await self.margin.cross_place_order(
             symbol="BTCUSDT",
             orderType="market",
             loanType="normal",
@@ -3217,11 +3371,11 @@ class TestMargin(unittest.TestCase):
             }
         )
 
-    def test_cross_repay(self):
+    async def test_cross_repay(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"coin": "USDT", "repayId": "12313123213", "remainDebtAmount": "0.2", "repayAmount": "0.1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.cross_repay(coin="BTC", repayAmount="0.1")
+        response = await self.margin.cross_repay(coin="BTC", repayAmount="0.1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3229,11 +3383,11 @@ class TestMargin(unittest.TestCase):
             body={'coin': 'BTC', 'repayAmount': '0.1'}
         )
 
-    def test_get_cross_tier_configuration(self):
+    async def test_get_cross_tier_configuration(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_tier_configuration(coin="ETH")
+        response = await self.margin.get_cross_tier_configuration(coin="ETH")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3241,11 +3395,11 @@ class TestMargin(unittest.TestCase):
             params={'coin': 'ETH'}
         )
 
-    def test_get_cross_account_assets(self):
+    async def test_get_cross_account_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_account_assets(coin="USDT")
+        response = await self.margin.get_cross_account_assets(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3253,14 +3407,14 @@ class TestMargin(unittest.TestCase):
             params={'coin': 'USDT'}
         )
 
-    def test_isolated_batch_cancel_orders(self):
+    async def test_isolated_batch_cancel_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
         order_list = [
             {"orderId": "121211212122", "clientOid": "121211212122"}
         ]
-        response = self.margin.isolated_batch_cancel_orders(symbol="BTCUSDT", orderIdList=order_list)
+        response = await self.margin.isolated_batch_cancel_orders(symbol="BTCUSDT", orderIdList=order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3271,11 +3425,11 @@ class TestMargin(unittest.TestCase):
             }
         )
 
-    def test_isolated_place_order(self):
+    async def test_isolated_place_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.isolated_place_order(
+        response = await self.margin.isolated_place_order(
             symbol="ETHUSDT",
             side="buy",
             price="1796.5",
@@ -3299,7 +3453,7 @@ class TestMargin(unittest.TestCase):
             }
         )
 
-    def test_isolated_batch_orders(self):
+    async def test_isolated_batch_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -3310,7 +3464,7 @@ class TestMargin(unittest.TestCase):
             "quoteSize": "110",
             "loanType": "normal"
         }]
-        response = self.margin.isolated_batch_orders(symbol="BTCUSDT", orderList=order_list)
+        response = await self.margin.isolated_batch_orders(symbol="BTCUSDT", orderList=order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3318,11 +3472,11 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'orderList': order_list}
         )
 
-    def test_isolated_cancel_order(self):
+    async def test_isolated_cancel_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.isolated_cancel_order(symbol="ETHUSDT", orderId="121211212122")
+        response = await self.margin.isolated_cancel_order(symbol="ETHUSDT", orderId="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3330,7 +3484,7 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'ETHUSDT', 'orderId': '121211212122'}
         )
 
-    def test_cancel_isolated_orders_in_batch(self):
+    async def test_cancel_isolated_orders_in_batch(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -3338,7 +3492,7 @@ class TestMargin(unittest.TestCase):
             "orderId": "121211212122",
             "clientOid": "121211212122"
         }]
-        response = self.margin.cancel_isolated_orders_in_batch(symbol="BTCUSDT", orderIdList=order_id_list)
+        response = await self.margin.cancel_isolated_orders_in_batch(symbol="BTCUSDT", orderIdList=order_id_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3346,11 +3500,11 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'orderIdList': order_id_list}
         )
 
-    def test_get_isolated_orders_history(self):
+    async def test_get_isolated_orders_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_orders_history(symbol="ETHUSDT", startTime="1695336324000")
+        response = await self.margin.get_isolated_orders_history(symbol="ETHUSDT", startTime="1695336324000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3358,11 +3512,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'ETHUSDT', 'startTime': '1695336324000'}
         )
 
-    def test_get_isolated_order_fills(self):
+    async def test_get_isolated_order_fills(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"fills": [], "minId": "1", "maxId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_order_fills(symbol="ETHUSDT", startTime="1695336324000")
+        response = await self.margin.get_isolated_order_fills(symbol="ETHUSDT", startTime="1695336324000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3370,11 +3524,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'ETHUSDT', 'startTime': '1695336324000'}
         )
 
-    def test_isolated_borrow(self):
+    async def test_isolated_borrow(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"loanId": "123412412452345", "symbol": "BTCUSDT", "coin": "USDT", "borrowAmount": "1.00000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.isolated_borrow(symbol="BTCUSDT", coin="USDT", borrowAmount="1")
+        response = await self.margin.isolated_borrow(symbol="BTCUSDT", coin="USDT", borrowAmount="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3382,11 +3536,11 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'coin': 'USDT', 'borrowAmount': '1'}
         )
 
-    def test_isolated_repay(self):
+    async def test_isolated_repay(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"remainDebtAmount": "0", "symbol": "BTCUSDT", "repayId": "1234234234234", "coin": "USDT", "repayAmount": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.isolated_repay(symbol="BTCUSDT", coin="USDT", repayAmount="1")
+        response = await self.margin.isolated_repay(symbol="BTCUSDT", coin="USDT", repayAmount="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3394,11 +3548,11 @@ class TestMargin(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'coin': 'USDT', 'repayAmount': '1'}
         )
 
-    def test_get_isolated_risk_rate(self):
+    async def test_get_isolated_risk_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_risk_rate(symbol="BTCUSDT")
+        response = await self.margin.get_isolated_risk_rate(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3406,11 +3560,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_isolated_tier_configuration(self):
+    async def test_get_isolated_tier_configuration(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_tier_configuration(symbol="BTCUSDT")
+        response = await self.margin.get_isolated_tier_configuration(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3418,11 +3572,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_isolated_flash_repay(self):
+    async def test_isolated_flash_repay(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.isolated_flash_repay(symbolList=["ETHUSDT"])
+        response = await self.margin.isolated_flash_repay(symbolList=["ETHUSDT"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3430,11 +3584,11 @@ class TestMargin(unittest.TestCase):
             body={'symbolList': ['ETHUSDT']}
         )
 
-    def test_query_isolated_flash_repayment_result(self):
+    async def test_query_isolated_flash_repayment_result(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.query_isolated_flash_repayment_result(idList=["13423423"])
+        response = await self.margin.query_isolated_flash_repayment_result(idList=["13423423"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3442,11 +3596,11 @@ class TestMargin(unittest.TestCase):
             body={'idList': ['13423423']}
         )
 
-    def test_get_isolated_repay_history(self):
+    async def test_get_isolated_repay_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_repay_history(symbol="BTCUSDT", startTime="1695336324000", endTime="1695336324000", limit="20", idLessThan="123", repayId="456", coin="USDT")
+        response = await self.margin.get_isolated_repay_history(symbol="BTCUSDT", startTime="1695336324000", endTime="1695336324000", limit="20", idLessThan="123", repayId="456", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3454,11 +3608,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1695336324000', 'endTime': '1695336324000', 'limit': '20', 'idLessThan': '123', 'repayId': '456', 'coin': 'USDT'}
         )
 
-    def test_get_support_currencies(self):
+    async def test_get_support_currencies(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_support_currencies()
+        response = await self.margin.get_support_currencies()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3466,11 +3620,11 @@ class TestMargin(unittest.TestCase):
             params={}
         )
 
-    def test_get_the_leverage_interest_rate(self):
+    async def test_get_the_leverage_interest_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"coin": "BTC", "dailyInterestRate": "0.00003000", "annualInterestRate": "0.01095000", "updatedTime": "1746690900381"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_the_leverage_interest_rate(coin="BTC")
+        response = await self.margin.get_the_leverage_interest_rate(coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3478,11 +3632,11 @@ class TestMargin(unittest.TestCase):
             params={'coin': 'BTC'}
         )
 
-    def test_get_cross_interest_history(self):
+    async def test_get_cross_interest_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"minId": "1", "maxId": "1", "resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_interest_history(startTime="1693205171000", coin="USDT", endTime="1694155571000", limit="20", idLessThan="123")
+        response = await self.margin.get_cross_interest_history(startTime="1693205171000", coin="USDT", endTime="1694155571000", limit="20", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3490,11 +3644,11 @@ class TestMargin(unittest.TestCase):
             params={'startTime': '1693205171000', 'coin': 'USDT', 'endTime': '1694155571000', 'limit': '20', 'idLessThan': '123'}
         )
 
-    def test_get_cross_interest_rate_and_max_borrowable(self):
+    async def test_get_cross_interest_rate_and_max_borrowable(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_interest_rate_and_max_borrowable(coin="ETH")
+        response = await self.margin.get_cross_interest_rate_and_max_borrowable(coin="ETH")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3502,11 +3656,11 @@ class TestMargin(unittest.TestCase):
             params={'coin': 'ETH'}
         )
 
-    def test_get_cross_liquidation_history(self):
+    async def test_get_cross_liquidation_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"minId": "1", "maxId": "1", "resultList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_liquidation_history(startTime="1693205171000", endTime="1694155571000", limit="20", idLessThan="123")
+        response = await self.margin.get_cross_liquidation_history(startTime="1693205171000", endTime="1694155571000", limit="20", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3514,11 +3668,11 @@ class TestMargin(unittest.TestCase):
             params={'startTime': '1693205171000', 'endTime': '1694155571000', 'limit': '20', 'idLessThan': '123'}
         )
 
-    def test_get_cross_liquidation_orders(self):
+    async def test_get_cross_liquidation_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "idLessThan": "1131405566368010241"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_liquidation_orders(startTime="1704100405000", endTime="1706174005091", limit="20")
+        response = await self.margin.get_cross_liquidation_orders(startTime="1704100405000", endTime="1706174005091", limit="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3526,11 +3680,11 @@ class TestMargin(unittest.TestCase):
             params={'startTime': '1704100405000', 'endTime': '1706174005091', 'limit': '20'}
         )
 
-    def test_get_cross_max_transferable(self):
+    async def test_get_cross_max_transferable(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"coin": "USDT", "maxTransferOutAmount": "11"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_max_transferable(coin="USDT")
+        response = await self.margin.get_cross_max_transferable(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3538,11 +3692,11 @@ class TestMargin(unittest.TestCase):
             params={'coin': 'USDT'}
         )
 
-    def test_get_cross_order_fills(self):
+    async def test_get_cross_order_fills(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"fills": [], "maxId": "121211212122", "minId": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_order_fills(symbol="BTCUSDT", startTime="1693205171000", endTime="1694155571000", limit="20", idLessThan="123")
+        response = await self.margin.get_cross_order_fills(symbol="BTCUSDT", startTime="1693205171000", endTime="1694155571000", limit="20", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3550,11 +3704,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1693205171000', 'endTime': '1694155571000', 'limit': '20', 'idLessThan': '123'}
         )
 
-    def test_get_cross_repay_history(self):
+    async def test_get_cross_repay_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_repay_history(startTime="1693205171000", endTime="1694155571000", limit="20", idLessThan="123", repayId="456", coin="USDT")
+        response = await self.margin.get_cross_repay_history(startTime="1693205171000", endTime="1694155571000", limit="20", idLessThan="123", repayId="456", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3562,11 +3716,11 @@ class TestMargin(unittest.TestCase):
             params={'startTime': '1693205171000', 'endTime': '1694155571000', 'limit': '20', 'idLessThan': '123', 'repayId': '456', 'coin': 'USDT'}
         )
 
-    def test_get_cross_risk_rate(self):
+    async def test_get_cross_risk_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"riskRateRatio": "0"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_cross_risk_rate()
+        response = await self.margin.get_cross_risk_rate()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3574,11 +3728,11 @@ class TestMargin(unittest.TestCase):
             params={}
         )
 
-    def test_get_isolated_account_asset(self):
+    async def test_get_isolated_account_asset(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_account_asset(symbol="BTCUSDT")
+        response = await self.margin.get_isolated_account_asset(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3586,11 +3740,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_isolated_borrow_history(self):
+    async def test_get_isolated_borrow_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_borrow_history(symbol="BTCUSDT", startTime="1695336324000", endTime="1695336324000", limit="20", idLessThan="123", loanId="456", coin="USDT")
+        response = await self.margin.get_isolated_borrow_history(symbol="BTCUSDT", startTime="1695336324000", endTime="1695336324000", limit="20", idLessThan="123", loanId="456", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3598,11 +3752,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1695336324000', 'endTime': '1695336324000', 'limit': '20', 'idLessThan': '123', 'loanId': '456', 'coin': 'USDT'}
         )
 
-    def test_get_isolated_current_orders(self):
+    async def test_get_isolated_current_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderList": [], "maxId": "121211212122", "minId": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_current_orders(symbol="ETHUSDT", startTime="1695336324000")
+        response = await self.margin.get_isolated_current_orders(symbol="ETHUSDT", startTime="1695336324000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3610,11 +3764,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'ETHUSDT', 'startTime': '1695336324000'}
         )
 
-    def test_get_isolated_financial_history(self):
+    async def test_get_isolated_financial_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_financial_history(symbol="BTCUSDT", startTime="1692690126000", endTime="1695625219083", limit="20", idLessThan="123", marginType="transfer_in", coin="USDT")
+        response = await self.margin.get_isolated_financial_history(symbol="BTCUSDT", startTime="1692690126000", endTime="1695625219083", limit="20", idLessThan="123", marginType="transfer_in", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3622,11 +3776,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1692690126000', 'endTime': '1695625219083', 'limit': '20', 'idLessThan': '123', 'marginType': 'transfer_in', 'coin': 'USDT'}
         )
 
-    def test_get_isolated_interest_history(self):
+    async def test_get_isolated_interest_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_interest_history(symbol="BTCUSDT", startTime="1695336324000", endTime="1695336324000", limit="20", idLessThan="123", coin="USDT")
+        response = await self.margin.get_isolated_interest_history(symbol="BTCUSDT", startTime="1695336324000", endTime="1695336324000", limit="20", idLessThan="123", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3634,11 +3788,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1695336324000', 'endTime': '1695336324000', 'limit': '20', 'idLessThan': '123', 'coin': 'USDT'}
         )
 
-    def test_get_isolated_interest_rate_and_max_borrowable(self):
+    async def test_get_isolated_interest_rate_and_max_borrowable(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_interest_rate_and_max_borrowable(symbol="BTCUSDT")
+        response = await self.margin.get_isolated_interest_rate_and_max_borrowable(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3646,11 +3800,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_isolated_liquidation_history(self):
+    async def test_get_isolated_liquidation_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "maxId": "1", "minId": "1"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_liquidation_history(symbol="BTCUSDT", startTime="1692690126000", endTime="1695624945382", limit="20", idLessThan="123")
+        response = await self.margin.get_isolated_liquidation_history(symbol="BTCUSDT", startTime="1692690126000", endTime="1695624945382", limit="20", idLessThan="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3658,11 +3812,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1692690126000', 'endTime': '1695624945382', 'limit': '20', 'idLessThan': '123'}
         )
 
-    def test_get_isolated_liquidation_orders(self):
+    async def test_get_isolated_liquidation_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"resultList": [], "idLessThan": "123456789"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_liquidation_orders(startTime="1704100405000", endTime="1706174005091", limit="20", type="place_order", symbol="BTCUSDT")
+        response = await self.margin.get_isolated_liquidation_orders(startTime="1704100405000", endTime="1706174005091", limit="20", type="place_order", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3670,11 +3824,11 @@ class TestMargin(unittest.TestCase):
             params={'startTime': '1704100405000', 'endTime': '1706174005091', 'limit': '20', 'type': 'place_order', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_isolated_max_borrowable(self):
+    async def test_get_isolated_max_borrowable(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"symbol": "ETHUSDT", "baseCoin": "ETH", "baseCoinMaxBorrowAmount": "10.1401916", "quoteCoin": "USDT", "quoteCoinMaxBorrowAmount": "3976070.21616"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_max_borrowable(symbol="BTCUSDT")
+        response = await self.margin.get_isolated_max_borrowable(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3682,11 +3836,11 @@ class TestMargin(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_isolated_max_transferable(self):
+    async def test_get_isolated_max_transferable(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"baseCoin": "BTC", "symbol": "BTCUSDT", "baseCoinMaxTransferOutAmount": "199999", "quoteCoin": "USDT", "quoteCoinMaxTransferOutAmount": "1000000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.margin.get_isolated_max_transferable(symbol="BTCUSDT")
+        response = await self.margin.get_isolated_max_transferable(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3699,25 +3853,28 @@ class TestSpot(unittest.TestCase):
         self.mock_client = Mock()
         self.spot = Spot(self.mock_client)
 
+    def tearDown(self):
+        pass
+
     def test_spot_initialization(self):
         self.assertEqual(self.spot.client, self.mock_client)
 
-    def test_get_server_time(self):
+    async def test_get_server_time(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"serverTime": "1688008631614"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_server_time()
+        response = await self.spot.get_server_time()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/public/time"
         )
 
-    def test_get_symbol_config(self):
+    async def test_get_symbol_config(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_symbol_config(symbol="BTCUSDT")
+        response = await self.spot.get_symbol_config(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3725,11 +3882,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_currency_information(self):
+    async def test_get_currency_information(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_currency_information(coin="BTC")
+        response = await self.spot.get_currency_information(coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3737,11 +3894,11 @@ class TestSpot(unittest.TestCase):
             params={'coin': 'BTC'}
         )
 
-    def test_get_deposit_address(self):
+    async def test_get_deposit_address(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_deposit_address(coin="USDT", chain="trc20")
+        response = await self.spot.get_deposit_address(coin="USDT", chain="trc20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3749,11 +3906,11 @@ class TestSpot(unittest.TestCase):
             params={'coin': 'USDT', 'chain': 'trc20'}
         )
 
-    def test_get_deposit_record(self):
+    async def test_get_deposit_record(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_deposit_record(startTime="1659036670000", endTime="1659076670000", coin="USDT")
+        response = await self.spot.get_deposit_record(startTime="1659036670000", endTime="1659076670000", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3761,11 +3918,11 @@ class TestSpot(unittest.TestCase):
             params={'startTime': '1659036670000', 'endTime': '1659076670000', 'coin': 'USDT'}
         )
 
-    def test_get_withdraw_record(self):
+    async def test_get_withdraw_record(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_withdraw_record(startTime="1659036670000", endTime="1659076670000", coin="USDT")
+        response = await self.spot.get_withdraw_record(startTime="1659036670000", endTime="1659076670000", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3773,11 +3930,11 @@ class TestSpot(unittest.TestCase):
             params={'startTime': '1659036670000', 'endTime': '1659076670000', 'coin': 'USDT'}
         )
 
-    def test_withdraw(self):
+    async def test_withdraw(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "888291686266343424", "clientOid": "123"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.withdraw(coin="USDT", transferType="on_chain", address="TBQ2LGFysnqkscvKqLBxnVVVw7ohiDvbdZ", size="10", chain="trc20")
+        response = await self.spot.withdraw(coin="USDT", transferType="on_chain", address="TBQ2LGFysnqkscvKqLBxnVVVw7ohiDvbdZ", size="10", chain="trc20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3785,11 +3942,11 @@ class TestSpot(unittest.TestCase):
             body={'coin': 'USDT', 'transferType': 'on_chain', 'address': 'TBQ2LGFysnqkscvKqLBxnVVVw7ohiDvbdZ', 'size': '10', 'chain': 'trc20'}
         )
 
-    def test_sub_transfer(self):
+    async def test_sub_transfer(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"transferId": "123456", "clientOid": "x123"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.sub_transfer(fromType="spot", toType="usdt_futures", amount="100", coin="USDT", fromUserId="123", toUserId="456")
+        response = await self.spot.sub_transfer(fromType="spot", toType="usdt_futures", amount="100", coin="USDT", fromUserId="123", toUserId="456")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3797,11 +3954,11 @@ class TestSpot(unittest.TestCase):
             body={'fromType': 'spot', 'toType': 'usdt_futures', 'amount': '100', 'coin': 'USDT', 'fromUserId': '123', 'toUserId': '456'}
         )
 
-    def test_transfer(self):
+    async def test_transfer(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"transferId": "123456", "clientOid": "x123"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.transfer(fromType="spot", toType="isolated_margin", amount="300", coin="USDT", symbol="BTCUSDT")
+        response = await self.spot.transfer(fromType="spot", toType="isolated_margin", amount="300", coin="USDT", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3809,11 +3966,11 @@ class TestSpot(unittest.TestCase):
             body={'fromType': 'spot', 'toType': 'isolated_margin', 'amount': '300', 'coin': 'USDT', 'symbol': 'BTCUSDT'}
         )
 
-    def test_cancel_withdrawal(self):
+    async def test_cancel_withdrawal(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.cancel_withdrawal(orderId="1231231312312")
+        response = await self.spot.cancel_withdrawal(orderId="1231231312312")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3821,22 +3978,22 @@ class TestSpot(unittest.TestCase):
             body={'orderId': '1231231312312'}
         )
 
-    def test_get_account_information(self):
+    async def test_get_account_information(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_account_information()
+        response = await self.spot.get_account_information()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/spot/account/info"
         )
 
-    def test_get_account_assets(self):
+    async def test_get_account_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_account_assets(coin="USDT", assetType="hold_only")
+        response = await self.spot.get_account_assets(coin="USDT", assetType="hold_only")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3844,11 +4001,11 @@ class TestSpot(unittest.TestCase):
             params={'coin': 'USDT', 'assetType': 'hold_only'}
         )
 
-    def test_get_sub_accounts_assets(self):
+    async def test_get_sub_accounts_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_sub_accounts_assets(idLessThan="123", limit="10")
+        response = await self.spot.get_sub_accounts_assets(idLessThan="123", limit="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3856,11 +4013,11 @@ class TestSpot(unittest.TestCase):
             params={'idLessThan': '123', 'limit': '10'}
         )
 
-    def test_modify_deposit_account(self):
+    async def test_modify_deposit_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.modify_deposit_account(accountType="usdt-futures", coin="USDT")
+        response = await self.spot.modify_deposit_account(accountType="usdt-futures", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3868,11 +4025,11 @@ class TestSpot(unittest.TestCase):
             body={'accountType': 'usdt-futures', 'coin': 'USDT'}
         )
 
-    def test_get_account_bills(self):
+    async def test_get_account_bills(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_account_bills(coin="USDT", startTime="1690196141868", endTime="1690196141868")
+        response = await self.spot.get_account_bills(coin="USDT", startTime="1690196141868", endTime="1690196141868")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3880,11 +4037,11 @@ class TestSpot(unittest.TestCase):
             params={'coin': 'USDT', 'startTime': '1690196141868', 'endTime': '1690196141868'}
         )
 
-    def test_get_transferable_coin_list(self):
+    async def test_get_transferable_coin_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_transferable_coin_list(fromType="isolated_margin", toType="spot")
+        response = await self.spot.get_transferable_coin_list(fromType="isolated_margin", toType="spot")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3892,11 +4049,11 @@ class TestSpot(unittest.TestCase):
             params={'fromType': 'isolated_margin', 'toType': 'spot'}
         )
 
-    def test_get_main_sub_transfer_record(self):
+    async def test_get_main_sub_transfer_record(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_main_sub_transfer_record(coin="USDT", startTime="1699510219000", endTime="1699684880000")
+        response = await self.spot.get_main_sub_transfer_record(coin="USDT", startTime="1699510219000", endTime="1699684880000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3904,11 +4061,11 @@ class TestSpot(unittest.TestCase):
             params={'coin': 'USDT', 'startTime': '1699510219000', 'endTime': '1699684880000'}
         )
 
-    def test_get_transfer_record(self):
+    async def test_get_transfer_record(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_transfer_record(coin="USDT", fromType="exchange", startTime="1659076670", endTime="1659076670")
+        response = await self.spot.get_transfer_record(coin="USDT", fromType="exchange", startTime="1659076670", endTime="1659076670")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3916,11 +4073,11 @@ class TestSpot(unittest.TestCase):
             params={'coin': 'USDT', 'fromType': 'exchange', 'startTime': '1659076670', 'endTime': '1659076670'}
         )
 
-    def test_switch_bgb_deduct(self):
+    async def test_switch_bgb_deduct(self):
         expected_response = {"code": "00000", "msg": "success", "data": True}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.switch_bgb_deduct(deduct="on")
+        response = await self.spot.switch_bgb_deduct(deduct="on")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3928,11 +4085,11 @@ class TestSpot(unittest.TestCase):
             body={'deduct': 'on'}
         )
 
-    def test_get_sub_account_deposit_address(self):
+    async def test_get_sub_account_deposit_address(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_sub_account_deposit_address(subUid="123", coin="USDT", chain="ERC20")
+        response = await self.spot.get_sub_account_deposit_address(subUid="123", coin="USDT", chain="ERC20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3940,22 +4097,22 @@ class TestSpot(unittest.TestCase):
             params={'subUid': '123', 'coin': 'USDT', 'chain': 'ERC20'}
         )
 
-    def test_get_bgb_deduct_info(self):
+    async def test_get_bgb_deduct_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"deduct": "on"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_bgb_deduct_info()
+        response = await self.spot.get_bgb_deduct_info()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/spot/account/deduct-info"
         )
 
-    def test_get_sub_account_deposit_records(self):
+    async def test_get_sub_account_deposit_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_sub_account_deposit_records(subUid="12121212", coin="USDT")
+        response = await self.spot.get_sub_account_deposit_records(subUid="12121212", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3963,11 +4120,11 @@ class TestSpot(unittest.TestCase):
             params={'subUid': '12121212', 'coin': 'USDT'}
         )
 
-    def test_upgrade_account(self):
+    async def test_upgrade_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": None}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.upgrade_account(subUid="123")
+        response = await self.spot.upgrade_account(subUid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -3975,11 +4132,11 @@ class TestSpot(unittest.TestCase):
             body={'subUid': '123'}
         )
 
-    def test_get_upgrade_status(self):
+    async def test_get_upgrade_status(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"status": "success"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_upgrade_status(subUid="123")
+        response = await self.spot.get_upgrade_status(subUid="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3987,11 +4144,11 @@ class TestSpot(unittest.TestCase):
             params={'subUid': '123'}
         )
 
-    def test_get_ticker_information(self):
+    async def test_get_ticker_information(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_ticker_information(symbol="BTCUSDT")
+        response = await self.spot.get_ticker_information(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -3999,11 +4156,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_merge_depth(self):
+    async def test_get_merge_depth(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_merge_depth(symbol="BTCUSDT", precision="scale0", limit="100")
+        response = await self.spot.get_merge_depth(symbol="BTCUSDT", precision="scale0", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4011,11 +4168,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'precision': 'scale0', 'limit': '100'}
         )
 
-    def test_get_orderbook_depth(self):
+    async def test_get_orderbook_depth(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_orderbook_depth(symbol="BTCUSDT", type="step0", limit="100")
+        response = await self.spot.get_orderbook_depth(symbol="BTCUSDT", type="step0", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4023,11 +4180,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'type': 'step0', 'limit': '100'}
         )
 
-    def test_get_candlestick_data(self):
+    async def test_get_candlestick_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_candlestick_data(symbol="BTCUSDT", granularity="1min", startTime="1659076670000", endTime="1659080270000", limit="100")
+        response = await self.spot.get_candlestick_data(symbol="BTCUSDT", granularity="1min", startTime="1659076670000", endTime="1659080270000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4035,11 +4192,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'granularity': '1min', 'startTime': '1659076670000', 'endTime': '1659080270000', 'limit': '100'}
         )
 
-    def test_get_call_auction_information(self):
+    async def test_get_call_auction_information(self):
         expected_response = {"code": "00000", "msg": "success", "data": {}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_call_auction_information(symbol="BTCUSDT")
+        response = await self.spot.get_call_auction_information(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4047,11 +4204,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT'}
         )
 
-    def test_get_history_candlestick_data(self):
+    async def test_get_history_candlestick_data(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_history_candlestick_data(symbol="BTCUSDT", granularity="1min", endTime="1659080270000", limit="100")
+        response = await self.spot.get_history_candlestick_data(symbol="BTCUSDT", granularity="1min", endTime="1659080270000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4059,11 +4216,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'granularity': '1min', 'endTime': '1659080270000', 'limit': '100'}
         )
 
-    def test_get_recent_trades(self):
+    async def test_get_recent_trades(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_recent_trades(symbol="BTCUSDT", limit="100")
+        response = await self.spot.get_recent_trades(symbol="BTCUSDT", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4071,11 +4228,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'limit': '100'}
         )
 
-    def test_get_market_trades(self):
+    async def test_get_market_trades(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_market_trades(symbol="BTCUSDT", limit="20", startTime="1678965010861", endTime="1678965910861")
+        response = await self.spot.get_market_trades(symbol="BTCUSDT", limit="20", startTime="1678965010861", endTime="1678965910861")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4083,22 +4240,22 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'limit': '20', 'startTime': '1678965010861', 'endTime': '1678965910861'}
         )
 
-    def test_get_vip_fee_rate(self):
+    async def test_get_vip_fee_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_vip_fee_rate()
+        response = await self.spot.get_vip_fee_rate()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
             "/api/v2/spot/market/vip-fee-rate"
         )
 
-    def test_place_order(self):
+    async def test_place_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "1001", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.place_order(symbol="BTCUSDT", side="buy", orderType="limit", force="gtc", price="23222.5", size="1", clientOid="121211212122")
+        response = await self.spot.place_order(symbol="BTCUSDT", side="buy", orderType="limit", force="gtc", price="23222.5", size="1", clientOid="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4106,7 +4263,7 @@ class TestSpot(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'side': 'buy', 'orderType': 'limit', 'force': 'gtc', 'price': '23222.5', 'size': '1', 'clientOid': '121211212122'}
         )
 
-    def test_batch_cancel_replace_order(self):
+    async def test_batch_cancel_replace_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
@@ -4117,7 +4274,7 @@ class TestSpot(unittest.TestCase):
             "price": "3.17",
             "size": "5"
         }]
-        response = self.spot.batch_cancel_replace_order(orderList=order_list)
+        response = await self.spot.batch_cancel_replace_order(orderList=order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4126,7 +4283,7 @@ class TestSpot(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.spot.cancel_order(symbol="BTCUSDT", tpslType="tpsl", clientOid="xx001")
+        response = await self.spot.cancel_order(symbol="BTCUSDT", tpslType="tpsl", clientOid="xx001")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4134,11 +4291,11 @@ class TestSpot(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'tpslType': 'tpsl', 'clientOid': 'xx001'}
         )
 
-    def test_cancel_order(self):
+    async def test_cancel_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "xx001"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.cancel_order(symbol="BTCUSDT", orderId="121211212122")
+        response = await self.spot.cancel_order(symbol="BTCUSDT", orderId="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4146,7 +4303,7 @@ class TestSpot(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'orderId': '121211212122'}
         )
 
-    def test_batch_cancel_orders(self):
+    async def test_batch_cancel_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -4155,7 +4312,7 @@ class TestSpot(unittest.TestCase):
             "symbol": "BTCUSDT",
             "clientOid": "121211212122"
         }]
-        response = self.spot.batch_cancel_orders(orderList=order_list, symbol="BTCUSDT")
+        response = await self.spot.batch_cancel_orders(orderList=order_list, symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4163,7 +4320,7 @@ class TestSpot(unittest.TestCase):
             body={'orderList': order_list, 'symbol': 'BTCUSDT'}
         )
 
-    def test_batch_place_orders(self):
+    async def test_batch_place_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
@@ -4175,7 +4332,7 @@ class TestSpot(unittest.TestCase):
             "size": "1",
             "clientOid": "121211212122"
         }]
-        response = self.spot.batch_place_orders(symbol="BTCUSDT", orderList=order_list, batchMode="single")
+        response = await self.spot.batch_place_orders(symbol="BTCUSDT", orderList=order_list, batchMode="single")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4193,7 +4350,7 @@ class TestSpot(unittest.TestCase):
             "size": "1",
             "clientOid": "121211212122"
         }]
-        response = self.spot.batch_place_orders(orderList=order_list_multiple, batchMode="multiple")
+        response = await self.spot.batch_place_orders(orderList=order_list_multiple, batchMode="multiple")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4201,11 +4358,11 @@ class TestSpot(unittest.TestCase):
             body={'orderList': order_list_multiple, 'batchMode': 'multiple'}
         )
 
-    def test_cancel_replace_order(self):
+    async def test_cancel_replace_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "xxxxxxxxxxxxxxx", "clientOid": None, "success": "success", "msg": None}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.cancel_replace_order(symbol="BTCUSDT", price="3.24", size="4", orderId="xxxxxxxxxxxxxxx")
+        response = await self.spot.cancel_replace_order(symbol="BTCUSDT", price="3.24", size="4", orderId="xxxxxxxxxxxxxxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4213,11 +4370,11 @@ class TestSpot(unittest.TestCase):
             body={'symbol': 'BTCUSDT', 'price': '3.24', 'size': '4', 'orderId': 'xxxxxxxxxxxxxxx'}
         )
 
-    def test_cancel_order_by_symbol(self):
+    async def test_cancel_order_by_symbol(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"symbol": "BGBUSDT"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.cancel_order_by_symbol(symbol="BTCUSDT")
+        response = await self.spot.cancel_order_by_symbol(symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4225,11 +4382,11 @@ class TestSpot(unittest.TestCase):
             body={'symbol': 'BTCUSDT'}
         )
 
-    def test_cancel_plan_order(self):
+    async def test_cancel_plan_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"result": "success"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.cancel_plan_order(orderId="121211212122")
+        response = await self.spot.cancel_plan_order(orderId="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4238,7 +4395,7 @@ class TestSpot(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.spot.cancel_plan_order(clientOid="test_client_oid")
+        response = await self.spot.cancel_plan_order(clientOid="test_client_oid")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4246,11 +4403,11 @@ class TestSpot(unittest.TestCase):
             body={'clientOid': 'test_client_oid'}
         )
 
-    def test_get_order_info(self):
+    async def test_get_order_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_order_info(orderId="1234567890")
+        response = await self.spot.get_order_info(orderId="1234567890")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4258,11 +4415,11 @@ class TestSpot(unittest.TestCase):
             params={'orderId': '1234567890'}
         )
 
-    def test_get_current_orders(self):
+    async def test_get_current_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_current_orders(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
+        response = await self.spot.get_current_orders(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4270,11 +4427,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1659036670000', 'endTime': '1659076670000', 'limit': '20'}
         )
 
-    def test_get_history_orders(self):
+    async def test_get_history_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_history_orders(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
+        response = await self.spot.get_history_orders(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4282,11 +4439,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1659036670000', 'endTime': '1659076670000', 'limit': '20'}
         )
 
-    def test_get_fills(self):
+    async def test_get_fills(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_fills(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
+        response = await self.spot.get_fills(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4294,11 +4451,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1659036670000', 'endTime': '1659076670000', 'limit': '20'}
         )
 
-    def test_place_plan_order(self):
+    async def test_place_plan_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.place_plan_order(symbol="TRXUSDT", side="buy", triggerPrice="0.041572", executePrice="0.041572", size="151", triggerType="market_price", orderType="limit", clientOid="12345")
+        response = await self.spot.place_plan_order(symbol="TRXUSDT", side="buy", triggerPrice="0.041572", executePrice="0.041572", size="151", triggerType="market_price", orderType="limit", clientOid="12345")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4306,11 +4463,11 @@ class TestSpot(unittest.TestCase):
             body={'symbol': 'TRXUSDT', 'side': 'buy', 'triggerPrice': '0.041572', 'executePrice': '0.041572', 'size': '151', 'triggerType': 'market_price', 'orderType': 'limit', 'clientOid': '12345'}
         )
 
-    def test_modify_plan_order(self):
+    async def test_modify_plan_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121211212122", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.modify_plan_order(orderId="121211212122", triggerPrice="0.041222", executePrice="0.041272", size="156", orderType="limit")
+        response = await self.spot.modify_plan_order(orderId="121211212122", triggerPrice="0.041222", executePrice="0.041272", size="156", orderType="limit")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4318,11 +4475,11 @@ class TestSpot(unittest.TestCase):
             body={'orderId': '121211212122', 'triggerPrice': '0.041222', 'executePrice': '0.041272', 'size': '156', 'orderType': 'limit'}
         )
 
-    def test_get_current_plan_orders(self):
+    async def test_get_current_plan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"nextFlag": False, "idLessThan": "1", "orderList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_current_plan_orders(symbol="BTCUSDT", limit="10")
+        response = await self.spot.get_current_plan_orders(symbol="BTCUSDT", limit="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4330,11 +4487,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'limit': '10'}
         )
 
-    def test_get_plan_sub_order(self):
+    async def test_get_plan_sub_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_plan_sub_order(planOrderId="xxxxxxxxxxxxxxxxxx")
+        response = await self.spot.get_plan_sub_order(planOrderId="xxxxxxxxxxxxxxxxxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4342,11 +4499,11 @@ class TestSpot(unittest.TestCase):
             params={'planOrderId': 'xxxxxxxxxxxxxxxxxx'}
         )
 
-    def test_get_history_plan_orders(self):
+    async def test_get_history_plan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"nextFlag": False, "idLessThan": "1", "orderList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.get_history_plan_orders(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
+        response = await self.spot.get_history_plan_orders(symbol="BTCUSDT", startTime="1659036670000", endTime="1659076670000", limit="20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4354,11 +4511,11 @@ class TestSpot(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'startTime': '1659036670000', 'endTime': '1659076670000', 'limit': '20'}
         )
 
-    def test_cancel_plan_orders_in_batch(self):
+    async def test_cancel_plan_orders_in_batch(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"successList": [], "failureList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.spot.cancel_plan_orders_in_batch(symbolList=["BTCUSDT", "ETHUSDT"])
+        response = await self.spot.cancel_plan_orders_in_batch(symbolList=["BTCUSDT", "ETHUSDT"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -4372,14 +4529,17 @@ class TestUta(unittest.TestCase):
         self.uta = Uta(self.mock_client)
         self.mock_client._send_websocket_request.return_value = {"status": "message sent"}
 
+    def tearDown(self):
+        pass
+
     def test_uta_initialization(self):
         self.assertEqual(self.uta.client, self.mock_client)
 
-    def test_get_account_info(self):
+    async def test_get_account_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"uid": "1111111111", "accountMode": "hybrid"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_account_info()
+        response = await self.uta.get_account_info()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4387,11 +4547,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_account_assets(self):
+    async def test_get_account_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"accountEquity": "11.13919278"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_account_assets()
+        response = await self.uta.get_account_assets()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4399,11 +4559,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_account_funding_assets(self):
+    async def test_get_account_funding_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_account_funding_assets(coin="USDT")
+        response = await self.uta.get_account_funding_assets(coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4411,11 +4571,11 @@ class TestUta(unittest.TestCase):
             params={'coin': 'USDT'}
         )
 
-    def test_get_account_fee_rate(self):
+    async def test_get_account_fee_rate(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"makerFeeRate": "0.0008", "takerFeeRate": "0.0008"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_account_fee_rate(symbol="BTCUSDT", category="SPOT")
+        response = await self.uta.get_account_fee_rate(symbol="BTCUSDT", category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4423,11 +4583,11 @@ class TestUta(unittest.TestCase):
             params={'symbol': 'BTCUSDT', 'category': 'SPOT'}
         )
 
-    def test_get_convert_records(self):
+    async def test_get_convert_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [], "cursor": "123"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_convert_records(fromCoin="BTC", toCoin="USDT", startTime="123", endTime="456", limit="10", cursor="789")
+        response = await self.uta.get_convert_records(fromCoin="BTC", toCoin="USDT", startTime="123", endTime="456", limit="10", cursor="789")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4435,11 +4595,11 @@ class TestUta(unittest.TestCase):
             params={'fromCoin': 'BTC', 'toCoin': 'USDT', 'startTime': '123', 'endTime': '456', 'limit': '10', 'cursor': '789'}
         )
 
-    def test_get_historical_candlestick_uta(self):
+    async def test_get_historical_candlestick_uta(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_historical_candlestick_uta(
+        response = await self.uta.get_historical_candlestick_uta(
             category="USDT-FUTURES",
             symbol="BTCUSDT",
             interval="1m",
@@ -4463,11 +4623,11 @@ class TestUta(unittest.TestCase):
             }
         )
 
-    def test_get_kline_candlestick(self):
+    async def test_get_kline_candlestick(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_kline_candlestick(
+        response = await self.uta.get_kline_candlestick(
             category="USDT-FUTURES",
             symbol="BTCUSDT",
             interval="1m",
@@ -4491,11 +4651,11 @@ class TestUta(unittest.TestCase):
             }
         )
 
-    def test_get_deduct_info(self):
+    async def test_get_deduct_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"deduct": "on"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_deduct_info()
+        response = await self.uta.get_deduct_info()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4503,8 +4663,8 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_subscribe_account_channel(self):
-        response = self.uta.subscribe_account_channel()
+    async def test_subscribe_account_channel(self):
+        response = await self.uta.subscribe_account_channel()
         self.mock_client._send_websocket_request.assert_called_once_with({
             "op": "subscribe",
             "args": [
@@ -4516,11 +4676,11 @@ class TestUta(unittest.TestCase):
         })
         self.assertEqual(response, {"status": "message sent"})
 
-    def test_get_margin_coin_info(self):
+    async def test_get_margin_coin_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productId": "xxxxxxxx", "coinInfo": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_margin_coin_info(productId="xxx")
+        response = await self.uta.get_margin_coin_info(productId="xxx")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4528,11 +4688,11 @@ class TestUta(unittest.TestCase):
             params={'productId': 'xxx'}
         )
 
-    def test_get_margin_loan(self):
+    async def test_get_margin_loan(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"dailyInterest": "0.1", "annualInterest": "0.00416667", "limit": "3000"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_margin_loan(coin="BTC")
+        response = await self.uta.get_margin_loan(coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4540,11 +4700,11 @@ class TestUta(unittest.TestCase):
             params={'coin': 'BTC'}
         )
 
-    def test_get_loan_orders(self):
+    async def test_get_loan_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_loan_orders(orderId="test_order_id", startTime="123", endTime="456")
+        response = await self.uta.get_loan_orders(orderId="test_order_id", startTime="123", endTime="456")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4553,7 +4713,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_loan_orders()
+        response = await self.uta.get_loan_orders()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4561,11 +4721,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_ltv(self):
+    async def test_get_ltv(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"ltv": "0.6667"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_ltv(riskUnitId="test_risk_unit_id")
+        response = await self.uta.get_ltv(riskUnitId="test_risk_unit_id")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4574,7 +4734,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_ltv()
+        response = await self.uta.get_ltv()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4582,11 +4742,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_open_interest_limit(self):
+    async def test_get_open_interest_limit(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_open_interest_limit(category="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.uta.get_open_interest_limit(category="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4595,7 +4755,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_open_interest_limit(category="USDT-FUTURES")
+        response = await self.uta.get_open_interest_limit(category="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4603,11 +4763,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'USDT-FUTURES'}
         )
 
-    def test_get_open_interest(self):
+    async def test_get_open_interest(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [{"symbol": "BTCUSDT", "openInterest": "2243.019"}], "ts": "1730969652411"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_open_interest(category="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.uta.get_open_interest(category="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4616,7 +4776,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_open_interest(category="USDT-FUTURES")
+        response = await self.uta.get_open_interest(category="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4624,11 +4784,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'USDT-FUTURES'}
         )
 
-    def test_get_open_orders(self):
+    async def test_get_open_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [], "cursor": "1235058132196622336"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_open_orders(category="USDT-FUTURES", symbol="BTCUSDT", startTime="1659076670000", endTime="1659076670000", limit="100", cursor="123")
+        response = await self.uta.get_open_orders(category="USDT-FUTURES", symbol="BTCUSDT", startTime="1659076670000", endTime="1659076670000", limit="100", cursor="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4637,7 +4797,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_open_orders(category="SPOT")
+        response = await self.uta.get_open_orders(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4645,11 +4805,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT'}
         )
 
-    def test_get_order_details(self):
+    async def test_get_order_details(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "111111111111111111"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_order_details(orderId="111111111111111111")
+        response = await self.uta.get_order_details(orderId="111111111111111111")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4658,7 +4818,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_order_details(clientOid="121211212122")
+        response = await self.uta.get_order_details(clientOid="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4666,11 +4826,11 @@ class TestUta(unittest.TestCase):
             params={'clientOid': '121211212122'}
         )
 
-    def test_get_order_history(self):
+    async def test_get_order_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [], "cursor": "1233319323918499840"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_order_history(category="USDT-FUTURES", symbol="BTCUSDT", startTime="1659076670000", endTime="1659076670000", limit="100", cursor="123")
+        response = await self.uta.get_order_history(category="USDT-FUTURES", symbol="BTCUSDT", startTime="1659076670000", endTime="1659076670000", limit="100", cursor="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4679,7 +4839,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_order_history(category="SPOT")
+        response = await self.uta.get_order_history(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4687,11 +4847,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT'}
         )
 
-    def test_get_orderbook(self):
+    async def test_get_orderbook(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"a": [], "b": [], "ts": "1730969017964"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_orderbook(category="USDT-FUTURES", symbol="BTCUSDT", limit="5")
+        response = await self.uta.get_orderbook(category="USDT-FUTURES", symbol="BTCUSDT", limit="5")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4700,7 +4860,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_orderbook(category="SPOT", symbol="ETHUSDT")
+        response = await self.uta.get_orderbook(category="SPOT", symbol="ETHUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4708,11 +4868,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT', 'symbol': 'ETHUSDT'}
         )
 
-    def test_get_position_adl_rank(self):
+    async def test_get_position_adl_rank(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_position_adl_rank()
+        response = await self.uta.get_position_adl_rank()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4720,11 +4880,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_position_info(self):
+    async def test_get_position_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_position_info(category="USDT-FUTURES", symbol="BTCUSDT", posSide="long")
+        response = await self.uta.get_position_info(category="USDT-FUTURES", symbol="BTCUSDT", posSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4733,7 +4893,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_position_info(category="SPOT")
+        response = await self.uta.get_position_info(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4741,11 +4901,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT'}
         )
 
-    def test_get_position_tier(self):
+    async def test_get_position_tier(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_position_tier(category="USDT-FUTURES", symbol="BTCUSDT", coin="USDT")
+        response = await self.uta.get_position_tier(category="USDT-FUTURES", symbol="BTCUSDT", coin="USDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4754,7 +4914,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_position_tier(category="MARGIN")
+        response = await self.uta.get_position_tier(category="MARGIN")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4762,11 +4922,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'MARGIN'}
         )
 
-    def test_get_positions_history(self):
+    async def test_get_positions_history(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [], "cursor": "1111111111111111111"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_positions_history(category="USDT-FUTURES", symbol="BTCUSDT", startTime="1659076670000", endTime="1659076670000", limit="100", cursor="123")
+        response = await self.uta.get_positions_history(category="USDT-FUTURES", symbol="BTCUSDT", startTime="1659076670000", endTime="1659076670000", limit="100", cursor="123")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4775,7 +4935,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_positions_history(category="SPOT")
+        response = await self.uta.get_positions_history(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4783,11 +4943,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT'}
         )
 
-    def test_get_product_info(self):
+    async def test_get_product_info(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productId": "xxxxxxxx", "leverage": "2"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_product_info(productId="test_product_id")
+        response = await self.uta.get_product_info(productId="test_product_id")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4795,11 +4955,11 @@ class TestUta(unittest.TestCase):
             params={'productId': 'test_product_id'}
         )
 
-    def test_get_proof_of_reserves(self):
+    async def test_get_proof_of_reserves(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"merkleRootHash": "e0dff99bbe2c2dcb"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_proof_of_reserves()
+        response = await self.uta.get_proof_of_reserves()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4807,11 +4967,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_repayable_coins(self):
+    async def test_get_repayable_coins(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"repayableCoinList": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_repayable_coins()
+        response = await self.uta.get_repayable_coins()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4819,11 +4979,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_repayment_orders(self):
+    async def test_get_repayment_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_repayment_orders(startTime="1659076670000", endTime="1659076670000", limit="100")
+        response = await self.uta.get_repayment_orders(startTime="1659076670000", endTime="1659076670000", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4832,7 +4992,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_repayment_orders()
+        response = await self.uta.get_repayment_orders()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4840,11 +5000,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_risk_reserve(self):
+    async def test_get_risk_reserve(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"totalBalance": "", "coin": "USDT"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_risk_reserve(category="USDT-FUTURES", symbol="BTCUSDT")
+        response = await self.uta.get_risk_reserve(category="USDT-FUTURES", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4852,11 +5012,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'USDT-FUTURES', 'symbol': 'BTCUSDT'}
         )
 
-    def test_get_risk_unit(self):
+    async def test_get_risk_unit(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"riskUnitId": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_risk_unit()
+        response = await self.uta.get_risk_unit()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4864,11 +5024,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_sub_account_api_keys(self):
+    async def test_get_sub_account_api_keys(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"items": [], "hasNext": False, "cursor": "18484"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_sub_account_api_keys(subUid="test_sub_uid", limit="100", cursor="test_cursor")
+        response = await self.uta.get_sub_account_api_keys(subUid="test_sub_uid", limit="100", cursor="test_cursor")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4877,7 +5037,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_sub_account_api_keys(subUid="test_sub_uid")
+        response = await self.uta.get_sub_account_api_keys(subUid="test_sub_uid")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4885,11 +5045,11 @@ class TestUta(unittest.TestCase):
             params={'subUid': 'test_sub_uid'}
         )
 
-    def test_get_sub_account_list(self):
+    async def test_get_sub_account_list(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [], "hasNext": False, "cursor": "18484"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_sub_account_list(limit="100", cursor="test_cursor")
+        response = await self.uta.get_sub_account_list(limit="100", cursor="test_cursor")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4898,7 +5058,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_sub_account_list()
+        response = await self.uta.get_sub_account_list()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4906,11 +5066,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_subaccount_unified_assets(self):
+    async def test_get_subaccount_unified_assets(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_subaccount_unified_assets(subUid="test_sub_uid", cursor="test_cursor", limit="10")
+        response = await self.uta.get_subaccount_unified_assets(subUid="test_sub_uid", cursor="test_cursor", limit="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4919,7 +5079,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_subaccount_unified_assets()
+        response = await self.uta.get_subaccount_unified_assets()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4927,11 +5087,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_switch_status(self):
+    async def test_get_switch_status(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"status": "success"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_switch_status()
+        response = await self.uta.get_switch_status()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4939,11 +5099,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_main_sub_transfer_records(self):
+    async def test_get_main_sub_transfer_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": [], "cursor": "2"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_main_sub_transfer_records(subUid="test_sub_uid", role="initiator", coin="USDT", startTime="1659076670000", endTime="1659076670000", clientOid="test_client_oid", limit="100", cursor="test_cursor")
+        response = await self.uta.get_main_sub_transfer_records(subUid="test_sub_uid", role="initiator", coin="USDT", startTime="1659076670000", endTime="1659076670000", clientOid="test_client_oid", limit="100", cursor="test_cursor")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4952,7 +5112,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_main_sub_transfer_records()
+        response = await self.uta.get_main_sub_transfer_records()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4960,11 +5120,11 @@ class TestUta(unittest.TestCase):
             params={}
         )
 
-    def test_get_tickers(self):
+    async def test_get_tickers(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_tickers(category="SPOT", symbol="BTCUSDT")
+        response = await self.uta.get_tickers(category="SPOT", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4973,7 +5133,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_tickers(category="USDT-FUTURES")
+        response = await self.uta.get_tickers(category="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4981,11 +5141,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'USDT-FUTURES'}
         )
 
-    def test_get_trade_symbols(self):
+    async def test_get_trade_symbols(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"productId": "xxxxxxxx", "spotSymbols": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_trade_symbols(productId="test_product_id")
+        response = await self.uta.get_trade_symbols(productId="test_product_id")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -4993,11 +5153,11 @@ class TestUta(unittest.TestCase):
             params={'productId': 'test_product_id'}
         )
 
-    def test_get_transferable_coins(self):
+    async def test_get_transferable_coins(self):
         expected_response = {"code": "00000", "msg": "success", "data": ["USDT"]}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_transferable_coins(fromType="uta", toType="spot")
+        response = await self.uta.get_transferable_coins(fromType="uta", toType="spot")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5005,11 +5165,11 @@ class TestUta(unittest.TestCase):
             params={'fromType': 'uta', 'toType': 'spot'}
         )
 
-    def test_get_transferred_quantity(self):
+    async def test_get_transferred_quantity(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"coin": "USDT", "transfered": "1223", "userId": "xxxxxxxxxx"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_transferred_quantity(coin="USDT", userId="test_user_id")
+        response = await self.uta.get_transferred_quantity(coin="USDT", userId="test_user_id")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5018,7 +5178,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_transferred_quantity(coin="BTC")
+        response = await self.uta.get_transferred_quantity(coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5026,11 +5186,11 @@ class TestUta(unittest.TestCase):
             params={'coin': 'BTC'}
         )
 
-    def test_get_withdrawal_records(self):
+    async def test_get_withdrawal_records(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_withdrawal_records(startTime="1700561435000", endTime="1703153435933", coin="USDT", orderId="test_order_id", clientOid="test_client_oid", limit="100", cursor="test_cursor")
+        response = await self.uta.get_withdrawal_records(startTime="1700561435000", endTime="1703153435933", coin="USDT", orderId="test_order_id", clientOid="test_client_oid", limit="100", cursor="test_cursor")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5039,7 +5199,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_withdrawal_records(startTime="1700561435000", endTime="1703153435933")
+        response = await self.uta.get_withdrawal_records(startTime="1700561435000", endTime="1703153435933")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5047,11 +5207,11 @@ class TestUta(unittest.TestCase):
             params={'startTime': '1700561435000', 'endTime': '1703153435933'}
         )
 
-    def test_main_sub_account_transfer(self):
+    async def test_main_sub_account_transfer(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"transferId": "172947298237423", "clientOid": "test_001"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.main_sub_account_transfer(fromType="spot", toType="uta", amount="1000", coin="USDT", fromUserId="1991021336", toUserId="4746345901", clientOid="test_client_oid")
+        response = await self.uta.main_sub_account_transfer(fromType="spot", toType="uta", amount="1000", coin="USDT", fromUserId="1991021336", toUserId="4746345901", clientOid="test_client_oid")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5059,11 +5219,11 @@ class TestUta(unittest.TestCase):
             body={'fromType': 'spot', 'toType': 'uta', 'amount': '1000', 'coin': 'USDT', 'fromUserId': '1991021336', 'toUserId': '4746345901', 'clientOid': 'test_client_oid'}
         )
 
-    def test_transfer(self):
+    async def test_transfer(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"transferId":"111111111111"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.transfer(fromType="spot", toType="p2p", amount="0.1", coin="BTC", symbol="BTCUSDT")
+        response = await self.uta.transfer(fromType="spot", toType="p2p", amount="0.1", coin="BTC", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5072,7 +5232,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.transfer(fromType="spot", toType="p2p", amount="0.1", coin="BTC")
+        response = await self.uta.transfer(fromType="spot", toType="p2p", amount="0.1", coin="BTC")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5080,11 +5240,11 @@ class TestUta(unittest.TestCase):
             body={'fromType': 'spot', 'toType': 'p2p', 'amount': '0.1', 'coin': 'BTC'}
         )
 
-    def test_modify_order(self):
+    async def test_modify_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "121212121212", "clientOid": "BITGET#1627293504612"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.modify_order(orderId="1", qty="123", price="123", autoCancel="no")
+        response = await self.uta.modify_order(orderId="1", qty="123", price="123", autoCancel="no")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5093,7 +5253,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.modify_order(clientOid="test_client_oid", qty="10")
+        response = await self.uta.modify_order(clientOid="test_client_oid", qty="10")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5101,11 +5261,11 @@ class TestUta(unittest.TestCase):
             body={'clientOid': 'test_client_oid', 'qty': '10'}
         )
 
-    def test_history_strategy_orders(self):
+    async def test_history_strategy_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"list": []}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.history_strategy_orders(category="USDT-FUTURES", type="tpsl", startTime="1597026383085", endTime="1597026383085", limit="100", cursor="test_cursor")
+        response = await self.uta.history_strategy_orders(category="USDT-FUTURES", type="tpsl", startTime="1597026383085", endTime="1597026383085", limit="100", cursor="test_cursor")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5114,7 +5274,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.history_strategy_orders(category="SPOT")
+        response = await self.uta.history_strategy_orders(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5122,11 +5282,11 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT'}
         )
 
-    def test_modify_sub_account_api_key(self):
+    async def test_modify_sub_account_api_key(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"apiKey": "***********************************"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.modify_sub_account_api_key(apiKey="test_api_key", passphrase="test_passphrase", type="read_write", permissions=["uta_trade"], ips=["127.0.0.1"])
+        response = await self.uta.modify_sub_account_api_key(apiKey="test_api_key", passphrase="test_passphrase", type="read_write", permissions=["uta_trade"], ips=["127.0.0.1"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5135,7 +5295,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.modify_sub_account_api_key(apiKey="test_api_key", passphrase="test_passphrase")
+        response = await self.uta.modify_sub_account_api_key(apiKey="test_api_key", passphrase="test_passphrase")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5143,11 +5303,11 @@ class TestUta(unittest.TestCase):
             body={'apiKey': 'test_api_key', 'passphrase': 'test_passphrase'}
         )
 
-    def test_place_order(self):
+    async def test_place_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"clientOid": "121211212122", "orderId": "121212121212"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.place_order(category="SPOT", symbol="BGBUSDT", qty="123", side="buy", orderType="limit", price="1.11", timeInForce="gtc", posSide="long", clientOid="test_client_oid", reduceOnly="no", stpMode="none", tpTriggerBy="market", slTriggerBy="market", takeProfit="100", stopLoss="50", tpOrderType="market", slOrderType="market", tpLimitPrice="90", slLimitPrice="60")
+        response = await self.uta.place_order(category="SPOT", symbol="BGBUSDT", qty="123", side="buy", orderType="limit", price="1.11", timeInForce="gtc", posSide="long", clientOid="test_client_oid", reduceOnly="no", stpMode="none", tpTriggerBy="market", slTriggerBy="market", takeProfit="100", stopLoss="50", tpOrderType="market", slOrderType="market", tpLimitPrice="90", slLimitPrice="60")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5156,7 +5316,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.place_order(category="USDT-FUTURES", symbol="BTCUSDT", qty="0.001", side="buy", orderType="market")
+        response = await self.uta.place_order(category="USDT-FUTURES", symbol="BTCUSDT", qty="0.001", side="buy", orderType="market")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5164,11 +5324,11 @@ class TestUta(unittest.TestCase):
             body={'category': 'USDT-FUTURES', 'symbol': 'BTCUSDT', 'qty': '0.001', 'side': 'buy', 'orderType': 'market'}
         )
 
-    def test_place_strategy_order(self):
+    async def test_place_strategy_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"clientOid": "121211212122", "orderId": "121212121212"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.place_strategy_order(category="USDT-FUTURES", symbol="BTCUSDT", posSide="long", clientOid="test_client_oid", type="tpsl", tpslMode="full", qty="0.001", tpTriggerBy="market", slTriggerBy="market", takeProfit="100", stopLoss="50", tpOrderType="market", slOrderType="market", tpLimitPrice="90", slLimitPrice="60")
+        response = await self.uta.place_strategy_order(category="USDT-FUTURES", symbol="BTCUSDT", posSide="long", clientOid="test_client_oid", type="tpsl", tpslMode="full", qty="0.001", tpTriggerBy="market", slTriggerBy="market", takeProfit="100", stopLoss="50", tpOrderType="market", slOrderType="market", tpLimitPrice="90", slLimitPrice="60")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5177,7 +5337,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.place_strategy_order(category="SPOT", symbol="ETHUSDT", posSide="long")
+        response = await self.uta.place_strategy_order(category="SPOT", symbol="ETHUSDT", posSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5185,8 +5345,8 @@ class TestUta(unittest.TestCase):
             body={'category': 'SPOT', 'symbol': 'ETHUSDT', 'posSide': 'long'}
         )
 
-    def test_subscribe_position_channel(self):
-        response = self.uta.subscribe_position_channel()
+    async def test_subscribe_position_channel(self):
+        response = await self.uta.subscribe_position_channel()
         self.mock_client._send_websocket_request.assert_called_once_with({
             "op": "subscribe",
             "args": [
@@ -5198,8 +5358,8 @@ class TestUta(unittest.TestCase):
         })
         self.assertEqual(response, {"status": "message sent"})
 
-    def test_subscribe_order_channel(self):
-        response = self.uta.subscribe_order_channel()
+    async def test_subscribe_order_channel(self):
+        response = await self.uta.subscribe_order_channel()
         self.mock_client._send_websocket_request.assert_called_once_with({
             "op": "subscribe",
             "args": [
@@ -5211,8 +5371,8 @@ class TestUta(unittest.TestCase):
         })
         self.assertEqual(response, {"status": "message sent"})
 
-    def test_subscribe_public_trades_channel(self):
-        response = self.uta.subscribe_public_trades_channel(instType="usdt-futures", symbol="BTCUSDT")
+    async def test_subscribe_public_trades_channel(self):
+        response = await self.uta.subscribe_public_trades_channel(instType="usdt-futures", symbol="BTCUSDT")
         self.mock_client._send_websocket_request.assert_called_once_with({
             "op": "subscribe",
             "args": [
@@ -5225,8 +5385,8 @@ class TestUta(unittest.TestCase):
         })
         self.assertEqual(response, {"status": "message sent"})
 
-    def test_subscribe_tickers_channel(self):
-        response = self.uta.subscribe_tickers_channel(instType="spot", symbol="BTCUSDT")
+    async def test_subscribe_tickers_channel(self):
+        response = await self.uta.subscribe_tickers_channel(instType="spot", symbol="BTCUSDT")
         self.mock_client._send_websocket_request.assert_called_once_with({
             "op": "subscribe",
             "args": [
@@ -5239,11 +5399,11 @@ class TestUta(unittest.TestCase):
         })
         self.assertEqual(response, {"status": "message sent"})
 
-    def test_repay(self):
+    async def test_repay(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"result": "YES", "repayAmount":"4345"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.repay(repayableCoinList=["USDT"], paymentCoinList=["ETH"])
+        response = await self.uta.repay(repayableCoinList=["USDT"], paymentCoinList=["ETH"])
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5251,11 +5411,11 @@ class TestUta(unittest.TestCase):
             body={'repayableCoinList': ['USDT'], 'paymentCoinList': ['ETH']}
         )
 
-    def test_set_holding_mode(self):
+    async def test_set_holding_mode(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.set_holding_mode(holdMode="one_way_mode")
+        response = await self.uta.set_holding_mode(holdMode="one_way_mode")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5263,11 +5423,11 @@ class TestUta(unittest.TestCase):
             body={'holdMode': 'one_way_mode'}
         )
 
-    def test_set_leverage(self):
+    async def test_set_leverage(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.set_leverage(category="USDT-FUTURES", leverage="10", symbol="BTCUSDT")
+        response = await self.uta.set_leverage(category="USDT-FUTURES", leverage="10", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5276,7 +5436,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.set_leverage(category="MARGIN", leverage="5", coin="USDT", posSide="long")
+        response = await self.uta.set_leverage(category="MARGIN", leverage="5", coin="USDT", posSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5284,11 +5444,11 @@ class TestUta(unittest.TestCase):
             body={'category': 'MARGIN', 'leverage': '5', 'coin': 'USDT', 'posSide': 'long'}
         )
 
-    def test_set_up_deposit_account(self):
+    async def test_set_up_deposit_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.set_up_deposit_account(coin="BTC", accountType="funding")
+        response = await self.uta.set_up_deposit_account(coin="BTC", accountType="funding")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5296,11 +5456,11 @@ class TestUta(unittest.TestCase):
             body={'coin': 'BTC', 'accountType': 'funding'}
         )
 
-    def test_switch_account(self):
+    async def test_switch_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": None}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.switch_account()
+        response = await self.uta.switch_account()
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5308,11 +5468,11 @@ class TestUta(unittest.TestCase):
             body={}
         )
 
-    def test_switch_deduct(self):
+    async def test_switch_deduct(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.switch_deduct(deduct="on")
+        response = await self.uta.switch_deduct(deduct="on")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5320,11 +5480,11 @@ class TestUta(unittest.TestCase):
             body={'deduct': 'on'}
         )
 
-    def test_withdrawal(self):
+    async def test_withdrawal(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "111111111111", "clientOid": "111111111111"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.withdrawal(coin="usdt", transferType="internal_transfer", address="234234242", size="100", chain="erc20", innerToType="uid", areaCode="123", tag="test_tag", remark="test_remark", clientOid="test_client_oid", memberCode="bithumb", identityType="user", companyName="test_company", firstName="test_first", lastName="test_last")
+        response = await self.uta.withdrawal(coin="usdt", transferType="internal_transfer", address="234234242", size="100", chain="erc20", innerToType="uid", areaCode="123", tag="test_tag", remark="test_remark", clientOid="test_client_oid", memberCode="bithumb", identityType="user", companyName="test_company", firstName="test_first", lastName="test_last")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5333,7 +5493,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.withdrawal(coin="usdt", transferType="on_chain", address="test_address", size="10", chain="erc20")
+        response = await self.uta.withdrawal(coin="usdt", transferType="on_chain", address="test_address", size="10", chain="erc20")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5341,11 +5501,11 @@ class TestUta(unittest.TestCase):
             body={'coin': 'usdt', 'transferType': 'on_chain', 'address': 'test_address', 'size': '10', 'chain': 'erc20'}
         )
 
-    def test_modify_strategy_order(self):
+    async def test_modify_strategy_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"clientOid": "121211212122", "orderId": "121212121212"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.modify_strategy_order(orderId="121211212122", qty="1", tpTriggerBy="market", takeProfit="106000", tpOrderType="market")
+        response = await self.uta.modify_strategy_order(orderId="121211212122", qty="1", tpTriggerBy="market", takeProfit="106000", tpOrderType="market")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5354,7 +5514,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.modify_strategy_order(clientOid="test_client_oid", stopLoss="90000", slOrderType="limit", slLimitPrice="89000")
+        response = await self.uta.modify_strategy_order(clientOid="test_client_oid", stopLoss="90000", slOrderType="limit", slLimitPrice="89000")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5362,11 +5522,11 @@ class TestUta(unittest.TestCase):
             body={'clientOid': 'test_client_oid', 'stopLoss': '90000', 'slOrderType': 'limit', 'slLimitPrice': '89000'}
         )
 
-    def test_get_recent_public_fills(self):
+    async def test_get_recent_public_fills(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_recent_public_fills(category="USDT-FUTURES", symbol="BTCUSDT", limit="100")
+        response = await self.uta.get_recent_public_fills(category="USDT-FUTURES", symbol="BTCUSDT", limit="100")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5375,7 +5535,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_recent_public_fills(category="SPOT")
+        response = await self.uta.get_recent_public_fills(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "GET",
@@ -5383,7 +5543,7 @@ class TestUta(unittest.TestCase):
             params={'category': 'SPOT'}
         )
 
-    def test_batch_cancel(self):
+    async def test_batch_cancel(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
@@ -5391,7 +5551,7 @@ class TestUta(unittest.TestCase):
             {"orderId": "112233", "category": "spot", "symbol": "BTCUSDT"},
             {"clientOid": "123456", "category": "spot", "symbol": "BTCUSDT"}
         ]
-        response = self.uta.batch_cancel(orders_to_cancel)
+        response = await self.uta.batch_cancel(orders_to_cancel)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5399,7 +5559,7 @@ class TestUta(unittest.TestCase):
             body=orders_to_cancel
         )
 
-    def test_batch_modify_orders(self):
+    async def test_batch_modify_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
@@ -5407,7 +5567,7 @@ class TestUta(unittest.TestCase):
             {"orderId": "1", "qty": "123", "price": "123", "autoCancel": "no"},
             {"orderId": "2", "qty": "123", "price": "123", "autoCancel": "no"}
         ]
-        response = self.uta.batch_modify_orders(order_list)
+        response = await self.uta.batch_modify_orders(order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5415,14 +5575,14 @@ class TestUta(unittest.TestCase):
             body=order_list
         )
 
-    def test_batch_order(self):
+    async def test_batch_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
         order_list = [
             {"category": "SPOT", "symbol": "BGBUSDT", "orderType": "limit", "qty": "123", "price": "1.11", "side": "buy", "posSide": "long", "timeInForce": "gtc", "reduceOnly": "no"}
         ]
-        response = self.uta.batch_order(order_list)
+        response = await self.uta.batch_order(order_list)
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5430,11 +5590,11 @@ class TestUta(unittest.TestCase):
             body=order_list
         )
 
-    def test_bind_unbind_uid_to_risk_unit(self):
+    async def test_bind_unbind_uid_to_risk_unit(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"riskUnitId": "12345678", "uid": "12345678", "operate": "bind"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.bind_unbind_uid_to_risk_unit(uid="12345678", operate="bind", riskUnitId="12345678")
+        response = await self.uta.bind_unbind_uid_to_risk_unit(uid="12345678", operate="bind", riskUnitId="12345678")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5443,7 +5603,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.bind_unbind_uid_to_risk_unit(uid="12345678", operate="unbind")
+        response = await self.uta.bind_unbind_uid_to_risk_unit(uid="12345678", operate="unbind")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5452,7 +5612,7 @@ class TestUta(unittest.TestCase):
         )
 
     @patch('time.time', Mock(return_value=1750035029.506))
-    def test_batch_place_order_channel(self):
+    async def test_batch_place_order_channel(self):
         category = "spot"
         orders = [
             {
@@ -5474,7 +5634,7 @@ class TestUta(unittest.TestCase):
                 "timeInForce": "gtc"
             }
         ]
-        response = self.uta.batch_place_order_channel(category, orders)
+        response = await self.uta.batch_place_order_channel(category, orders)
         expected_message = {
             "op": "trade",
             "id": "1750035029506",
@@ -5485,11 +5645,11 @@ class TestUta(unittest.TestCase):
         self.mock_client._send_websocket_request.assert_called_once_with(expected_message)
         self.assertEqual(response, {"status": "message sent"})
 
-    def test_cancel_all_orders(self):
+    async def test_cancel_all_orders(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.cancel_all_orders(category="SPOT", symbol="BTCUSDT")
+        response = await self.uta.cancel_all_orders(category="SPOT", symbol="BTCUSDT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5498,7 +5658,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.cancel_all_orders(category="SPOT")
+        response = await self.uta.cancel_all_orders(category="SPOT")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5506,11 +5666,11 @@ class TestUta(unittest.TestCase):
             body={'category': 'SPOT'}
         )
 
-    def test_cancel_order(self):
+    async def test_cancel_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"orderId": "111111111111111111", "clientOid": "121211212122"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.cancel_order(orderId="111111111111111111")
+        response = await self.uta.cancel_order(orderId="111111111111111111")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5519,7 +5679,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.cancel_order(clientOid="121211212122")
+        response = await self.uta.cancel_order(clientOid="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5527,11 +5687,11 @@ class TestUta(unittest.TestCase):
             body={'clientOid': '121211212122'}
         )
 
-    def test_cancel_strategy_order(self):
+    async def test_cancel_strategy_order(self):
         expected_response = {"code": "00000", "msg": "success", "data": None}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.cancel_strategy_order(orderId="111111111111111111")
+        response = await self.uta.cancel_strategy_order(orderId="111111111111111111")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5540,7 +5700,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.cancel_strategy_order(clientOid="121211212122")
+        response = await self.uta.cancel_strategy_order(clientOid="121211212122")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5548,11 +5708,11 @@ class TestUta(unittest.TestCase):
             body={'clientOid': '121211212122'}
         )
 
-    def test_close_all_positions(self):
+    async def test_close_all_positions(self):
         expected_response = {"code": "00000", "msg": "success", "data": []}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.close_all_positions(category="USDT-FUTURES", symbol="BTCUSDT", posSide="long")
+        response = await self.uta.close_all_positions(category="USDT-FUTURES", symbol="BTCUSDT", posSide="long")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5561,7 +5721,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.close_all_positions(category="USDT-FUTURES")
+        response = await self.uta.close_all_positions(category="USDT-FUTURES")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5569,11 +5729,11 @@ class TestUta(unittest.TestCase):
             body={'category': 'USDT-FUTURES'}
         )
 
-    def test_countdown_cancel_all(self):
+    async def test_countdown_cancel_all(self):
         expected_response = {"code": "00000", "msg": "success", "data": "success"}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.countdown_cancel_all(countdown="40")
+        response = await self.uta.countdown_cancel_all(countdown="40")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5581,11 +5741,11 @@ class TestUta(unittest.TestCase):
             body={'countdown': '40'}
         )
 
-    def test_create_sub_account(self):
+    async def test_create_sub_account(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"username": "xxxx@virtual-bitget.com", "subUid": "xxxx", "status": "normal", "note": "xxxx", "createdTime": "1740211445041", "updatedTime": "1740211445041"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.create_sub_account(username="testuser", accountMode="unified", note="testnote")
+        response = await self.uta.create_sub_account(username="testuser", accountMode="unified", note="testnote")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5594,7 +5754,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.create_sub_account(username="anotheruser")
+        response = await self.uta.create_sub_account(username="anotheruser")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5606,11 +5766,11 @@ class TestUta(unittest.TestCase):
 
 
 
-    def test_get_max_open_available(self):
+    async def test_get_max_open_available(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"available": "52.008255"}}
         self.mock_client._send_request.return_value = expected_response
 
-        response = self.uta.get_max_open_available(category="SPOT", symbol="BTCUSDT", orderType="market", side="sell", price="10000", size="1")
+        response = await self.uta.get_max_open_available(category="SPOT", symbol="BTCUSDT", orderType="market", side="sell", price="10000", size="1")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5619,7 +5779,7 @@ class TestUta(unittest.TestCase):
         )
 
         self.mock_client.reset_mock()
-        response = self.uta.get_max_open_available(category="SPOT", symbol="BTCUSDT", orderType="market", side="sell")
+        response = await self.uta.get_max_open_available(category="SPOT", symbol="BTCUSDT", orderType="market", side="sell")
         self.assertEqual(response, expected_response)
         self.mock_client._send_request.assert_called_once_with(
             "POST",
@@ -5628,5 +5788,3 @@ class TestUta(unittest.TestCase):
         )
 
 
-if __name__ == '__main__':
-    unittest.main()

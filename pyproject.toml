@@ -27,3 +27,9 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/tty666/bitget-api-client"
 "Bug Tracker" = "https://github.com/tty666/bitget-api-client/issues"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+asyncio_default_fixture_loop_scope = "function"
