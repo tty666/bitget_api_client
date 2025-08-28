@@ -92,7 +92,7 @@ class BitgetApiClient:
             # Check for Bitget-specific error codes in the JSON response
             if "code" in json_response and json_response["code"] != "00000":
                 error_code = json_response["code"]
-                error_message = f"Bitget API Error (Code: {error_code}): {json_response.get("msg", "Unknown Bitget API error")}"
+                error_message = f"Bitget API Error (Code: {error_code}): {json_response.get('msg', 'Unknown Bitget API error')}"
                 http_status_code = response.status # aiohttp uses .status for HTTP status code
 
                 # Categorize and raise specific exceptions

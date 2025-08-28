@@ -74,11 +74,11 @@ class WebSocketClient:
                     json_message = json.loads(message)
                     if "event" in json_message and json_message["event"] == "error":
                         error_code = json_message.get("code")
-                        error_message = f"Bitget WebSocket API Error (Code: {error_code}): {json_message.get("msg", "Unknown WebSocket error")}"
+                        error_message = f"Bitget WebSocket API Error (Code: {error_code}): {json_message.get('msg', 'Unknown WebSocket error')}"
                         raise BitgetAPIWebSocketException(error_message, code=error_code)
                     elif "code" in json_message and json_message["code"] != "0": # Assuming '0' is success for WebSocket
                         error_code = json_message.get("code")
-                        error_message = f"Bitget WebSocket API Error (Code: {error_code}): {json_message.get("msg", "Unknown WebSocket error")}"
+                        error_message = f"Bitget WebSocket API Error (Code: {error_code}): {json_message.get('msg', 'Unknown WebSocket error')}"
                         raise BitgetAPIWebSocketException(error_message, code=error_code)
                     # print(f"Received: {message}") # Keep for debugging if needed
                     # Implement message parsing and handling
