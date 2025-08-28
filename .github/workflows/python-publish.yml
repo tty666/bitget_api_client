@@ -26,6 +26,14 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Update package version from GitHub release
+        run: |
+          RELEASE_VERSION=${{ github.event.release.tag_name }}
+          # Remove 'v' prefix if present
+          PACKAGE_VERSION=${RELEASE_VERSION#v}
+          sed -i "s/^version = ".*"/version = "${PACKAGE_VERSION}"/" pyproject.toml
+          echo "Updated pyproject.toml version to $PACKAGE_VERSION"
+
       - name: Build release distributions
         run: |
           # NOTE: put your own distribution build steps here.
