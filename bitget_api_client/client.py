@@ -29,6 +29,9 @@ class BitgetApiClient:
         self.common = Common(self)
         self.contract = Contract(self)
         self.copytrading = CopyTrading(self)
+        self.earn = Earn(self)
+        self.instloan = Instloan(self)
+        self.margin = Margin(self)
         self.spot = Spot(self)
         self.uta = Uta(self)
 
