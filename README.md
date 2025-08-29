@@ -1,6 +1,6 @@
 # Bitget API Client
 
-A comprehensive Python client for the Bitget API V2, providing easy access to various trading and account functionalities.
+A comprehensive Python client for the Bitget API V2/V3, providing easy access to various trading and account functionalities.
 
 ## Official Bitget API V2 Documentation
 You can find the official Bitget API V2 documentation here: [https://www.bitget.com/api-doc/common/intro](https://www.bitget.com/api-doc/common/intro)

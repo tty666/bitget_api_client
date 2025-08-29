@@ -45,9 +45,19 @@ class WebSocketClient:
         self.ws_limiter = RateLimiter(10) # 10 messages per second for WebSocket
 
     def _is_open(self) -> bool:
+        """
+        Checks if the WebSocket connection is currently open.
+
+        Returns:
+            bool: True if the connection is open, False otherwise.
+        """
         return self._websocket is not None and not getattr(self._websocket, "closed", True)
 
     async def _send_ping(self):
+        """
+        Sends a ping message to the WebSocket server periodically to keep the connection alive.
+        This task runs indefinitely until the WebSocket connection is closed.
+        """
         while self._websocket is not None and not getattr(self._websocket, "closed", True):
             try:
                 assert self._websocket is not None
@@ -61,6 +71,10 @@ class WebSocketClient:
             await asyncio.sleep(30) # Send ping every 30 seconds as per documentation
 
     async def _receive_messages(self):
+        """
+        Continuously receives messages from the WebSocket connection.
+        Processes received messages, handles pongs, and raises exceptions for API errors.
+        """
         while self._websocket is not None and not getattr(self._websocket, "closed", True):
             try:
                 message = await self._websocket.recv()
@@ -101,6 +115,14 @@ class WebSocketClient:
                 break
 
     async def connect(self):
+        """
+        Establishes a WebSocket connection to the Bitget API.
+        Sends a login message upon successful connection and starts a background task to receive messages.
+
+        Raises:
+            ConnectionError: If the WebSocket connection fails to establish.
+            BitgetAPIWebSocketException: If a WebSocket API error occurs during login.
+        """
         if self._websocket is not None and not getattr(self._websocket, "closed", True):
             return # Already connected
 
@@ -140,6 +162,19 @@ class WebSocketClient:
             raise ConnectionError(f"Failed to establish WebSocket connection: {e}")
 
     async def send_message(self, message):
+        """
+        Sends a message over the WebSocket connection.
+        Applies rate limiting and attempts to re-establish connection if necessary.
+
+        Args:
+            message (dict): The message to send, which will be JSON serialized.
+
+        Returns:
+            dict: A dictionary indicating the status of the message sending operation.
+
+        Raises:
+            ConnectionError: If the WebSocket connection cannot be established or maintained.
+        """
         await self.ws_limiter.wait_for_permission()  # Apply rate limiting
 
         # Ensure connection is established
@@ -158,6 +193,9 @@ class WebSocketClient:
             raise ConnectionError(f"Failed to send WebSocket message: {e}")
 
     async def close(self):
+        """
+        Closes the WebSocket connection and cancels any running ping tasks.
+        """
         if self._websocket is not None:
             await self._websocket.close()
             self._websocket = None
