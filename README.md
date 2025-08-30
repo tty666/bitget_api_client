@@ -130,7 +130,7 @@ Methods for managing broker accounts and sub-accounts.
 *   `async modify_subaccount(subUid, permList, status, language=None)`
 *   `async modify_subaccount_apikey(subUid, apiKey, passphrase, label=None, ipList=None, permType=None, permList=None)`
 *   `async modify_subaccount_email(subUid, subaccountEmail)`
-*   `async sub_deposit_auto_transfer(subUid, coin, amount)`
+*   `async sub_deposit_auto_transfer(subUid, coin, toAccountType)`
 *   `async sub_deposit_records(orderId=None, userId=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
 *   `async sub_withdrawal_records(orderId=None, userId=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
 *   `async subaccount_withdrawal(subUid, coin, dest, address, amount, chain=None, tag=None, clientOid=None)`
@@ -148,7 +148,7 @@ General market data, account information, and utility methods.
 *   `async convert_bgb(coinList)`
 *   `async create_virtual_subaccount(subAccountList)`
 *   `async create_virtual_subaccount_apikey(subAccountUid, passphrase, label, permType, ipList=None, permList=None)`
-*   `async get_convert_history(startTime=None, endTime=None, pageNo=None, pageSize=None)`
+*   `async get_convert_history(startTime=None, endTime=None, limit=None, idLessThan=None)`
 *   `async get_futures_transaction_records(startTime, endTime, productType=None, marginCoin=None, limit=None, idLessThan=None)`
 *   `async get_margin_transaction_history(startTime, endTime, marginType=None, coin=None, limit=None, idLessThan=None)`
 *   `async get_p2p_transaction_records(startTime, endTime, coin=None, limit=None, idLessThan=None)`
@@ -162,10 +162,10 @@ General market data, account information, and utility methods.
 *   `async get_futures_long_and_short_ratio_data(symbol, period=None)`
 *   `async get_leveraged_long_short_ratio_data(symbol, period=None, coin=None)`
 *   `async get_isolated_margin_borrowing_ratio_data(symbol, period=None)`
-*   `async get_margin_loan_growth_rate_data(symbol, period=None)`
-*   `async get_merchant_advertisement_list(buySell, country=None, pageNo=None, pageSize=None, currency=None)`
+*   `async get_margin_loan_growth_rate_data(symbol, period=None, coin=None)`
+*   `async get_merchant_advertisement_list(side, coin, fiat, startTime=None, endTime=None, idLessThan=None, limit=None, status=None, advNo=None, language=None, orderBy=None, payMethodId=None, sourceType=None)`
 *   `async get_merchant_information()`
-*   `async get_merchant_p2p_orders(startTime=None, endTime=None, pageNo=None, pageSize=None, orderType=None, status=None, currency=None)`
+*   `async get_merchant_p2p_orders(startTime, advNo, endTime=None, idLessThan=None, limit=None, status=None, side=None, coin=None, language=None, fiat=None, orderNo=None)`
 *   `async get_p2p_merchant_list(online=None, idLessThan=None, limit=None)`
 *   `async get_quoted_price(fromCoin, toCoin, fromCoinSize=None, toCoinSize=None)`
 *   `async get_server_time()`
@@ -173,26 +173,26 @@ General market data, account information, and utility methods.
 *   `async get_spot_whale_net_flow_data(symbol)`
 *   `async get_trade_data_support_symbols()`
 *   `async get_trade_rate(symbol, businessType)`
-*   `async get_virtual_subaccounts()`
+*   `async get_virtual_subaccounts(limit=None, idLessThan=None, status=None)`
 *   `async get_subaccount_apikey_list(subAccountUid)`
-*   `async modify_virtual_subaccount(subAccountUid, label=None, status=None, permList=None, language=None)`
-*   `async modify_virtual_subaccount_apikey(subAccountUid, subAccountApiKey, passphrase, permType, label=None, ipList=None, permList=None)`
+*   `async modify_virtual_subaccount(subAccountUid, permList, status)`
+*   `async modify_virtual_subaccount_apikey(subAccountUid, subAccountApiKey, passphrase, label, ipList=None, permList=None)`
 
 ### `client.contract` (Contract Module)
 
 Methods for interacting with futures and perpetual contracts.
 
 *   `async adjust_position_margin(symbol, productType, marginCoin, holdSide, amount)`
-*   `async batch_cancel(symbol, productType, orderIds=None, clientOids=None)`
-*   `async batch_order(symbol, productType, orderList)`
+*   `async batch_cancel(productType, orderIdList=None, symbol=None, marginCoin=None)`
+*   `async batch_order(symbol, productType, marginCoin, marginMode, orderList)`
 *   `async cancel_all_orders(productType, marginCoin=None, requestTime=None, receiveWindow=None)`
 *   `async cancel_order(symbol, productType, orderId=None, clientOid=None, marginCoin=None)`
 *   `async cancel_trigger_order(productType, orderIdList=None, symbol=None, marginCoin=None, planType=None)`
-*   `async change_leverage(symbol, productType, leverage, marginCoin=None)`
-*   `async change_margin_mode(symbol, productType, marginMode, marginCoin=None)`
-*   `async change_position_mode(productType, holdMode)`
-*   `async change_the_product_line_leverage(productType, leverage, marginCoin=None)`
-*   `async flash_close_position(symbol, productType, marginCoin, holdSide)`
+*   `async change_leverage(symbol, productType, marginCoin, leverage=None, longLeverage=None, shortLeverage=None, holdSide=None)`
+*   `async change_margin_mode(symbol, productType, marginCoin, marginMode)`
+*   `async change_position_mode(productType, posMode)`
+*   `async change_the_product_line_leverage(productType, leverage)`
+*   `async flash_close_position(productType, symbol=None, holdSide=None)`
 *   `async get_account_bills(productType, marginCoin=None, startTime=None, endTime=None, bizType=None, bizSubType=None, limit=None, idLessThan=None)`
 *   `async get_account_list(productType)`
 *   `async get_single_account(symbol, productType, marginCoin)`
@@ -292,101 +292,101 @@ Methods for managing copy trading functionalities.
 
 Methods for Bitget Earn products like crypto loans, savings, and SharkFin.
 
-*   `borrow(loanCoin, pledgeCoin, daily, pledgeAmount=None, loanAmount=None)`
-*   `get_earn_account_assets(coin=None)`
-*   `get_currency_list(coin=None)`
-*   `get_debts()`
-*   `get_est_interest_and_borrowable(loanCoin, pledgeCoin, daily, pledgeAmount)`
-*   `get_liquidation_records(startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None)`
-*   `get_loan_history(startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None)`
-*   `get_loan_orders(orderId=None, loanCoin=None, pledgeCoin=None)`
-*   `get_pledge_rate_history(startTime, endTime, orderId=None, reviseSide=None, pledgeCoin=None, pageNo=None, pageSize=None)`
-*   `get_repay_history(startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, pageNo=None, pageSize=None)`
-*   `modify_pledge_rate(orderId, amount, pledgeCoin, reviseType)`
-*   `redeem_savings(productId, periodType, amount, orderId=None)`
-*   `repay(orderId, repayAll, amount=None, repayUnlock=None)`
-*   `get_savings_account()`
-*   `get_savings_product_list(coin=None, filter=None)`
-*   `get_savings_records(periodType, coin=None, orderType=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_savings_subscription_detail(productId, periodType)`
-*   `get_savings_subscription_result(productId, periodType)`
-*   `get_savings_redemption_results(orderId, periodType)`
-*   `get_sharkfin_account()`
-*   `get_sharkfin_assets(status, startTime=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_sharkfin_products(coin, limit=None, idLessThan=None)`
-*   `get_sharkfin_subscription_result(orderId)`
-*   `subscribe_savings(productId, periodType, amount)`
-*   `subscribe_sharkfin(productId, amount)`
-*   `get_sharkfin_records(type, coin=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_sharkfin_subscription_detail(productId)`
-*   `get_savings_assets(periodType, startTime=None, endTime=None, limit=None, idLessThan=None)`
+*   `async borrow(loanCoin, pledgeCoin, daily, pledgeAmount=None, loanAmount=None)`
+*   `async get_earn_account_assets(coin=None)`
+*   `async get_currency_list(coin=None)`
+*   `async get_debts()`
+*   `async get_est_interest_and_borrowable(loanCoin, pledgeCoin, daily, pledgeAmount)`
+*   `async get_liquidation_records(startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None)`
+*   `async get_loan_history(startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None)`
+*   `async get_loan_orders(orderId=None, loanCoin=None, pledgeCoin=None)`
+*   `async get_pledge_rate_history(startTime, endTime, orderId=None, reviseSide=None, pledgeCoin=None, pageNo=None, pageSize=None)`
+*   `async get_repay_history(startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, pageNo=None, pageSize=None)`
+*   `async modify_pledge_rate(orderId, amount, pledgeCoin, reviseType)`
+*   `async redeem_savings(productId, periodType, amount, orderId=None)`
+*   `async repay(orderId, repayAll, amount=None, repayUnlock=None)`
+*   `async get_savings_account()`
+*   `async get_savings_product_list(coin=None, filter=None)`
+*   `async get_savings_records(periodType, coin=None, orderType=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_savings_subscription_detail(productId, periodType)`
+*   `async get_savings_subscription_result(productId, periodType)`
+*   `async get_savings_redemption_results(orderId, periodType)`
+*   `async get_sharkfin_account()`
+*   `async get_sharkfin_assets(status, startTime=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_sharkfin_products(coin, limit=None, idLessThan=None)`
+*   `async get_sharkfin_subscription_result(orderId)`
+*   `async subscribe_savings(productId, periodType, amount)`
+*   `async subscribe_sharkfin(productId, amount)`
+*   `async get_sharkfin_records(type, coin=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_sharkfin_subscription_detail(productId)`
+*   `async get_savings_assets(periodType, startTime=None, endTime=None, limit=None, idLessThan=None)`
 
 ### `client.instloan` (Instloan Module)
 
 Methods for institutional loans.
 
-*   `bind_unbind_sub_account_uid_to_risk_unit(uid, operate, riskUnitId=None)`
-*   `get_loan_orders(orderId=None, startTime=None, endTime=None)`
-*   `get_ltv(riskUnitId=None)`
-*   `get_margin_coin_info(productId)`
-*   `get_product_info(productId)`
-*   `get_repayment_orders(startTime=None, endTime=None, limit=None)`
-*   `get_risk_unit()`
-*   `get_spot_symbols(productId)`
-*   `get_transferable_amount(coin, userId=None)`
+*   `async bind_unbind_sub_account_uid_to_risk_unit(uid, operate, riskUnitId=None)`
+*   `async get_loan_orders(orderId=None, startTime=None, endTime=None)`
+*   `async get_ltv(riskUnitId=None)`
+*   `async get_margin_coin_info(productId)`
+*   `async get_product_info(productId)`
+*   `async get_repayment_orders(startTime=None, endTime=None, limit=None)`
+*   `async get_risk_unit()`
+*   `async get_spot_symbols(productId)`
+*   `async get_transferable_amount(coin, userId=None)`
 
 ### `client.margin` (Margin Module)
 
 Methods for cross and isolated margin trading.
 
-*   `cross_batch_cancel_orders(symbol, orderIdList)`
-*   `cross_batch_orders(symbol, orderList)`
-*   `cross_borrow(coin, borrowAmount, clientOid=None)`
-*   `cross_cancel_order(symbol, orderId=None, clientOid=None)`
-*   `cross_flash_repay(coin=None)`
-*   `cross_place_order(symbol, orderType, loanType, force, side, price=None, baseSize=None, quoteSize=None, clientOid=None, stpMode=None)`
-*   `cross_repay(coin, repayAmount)`
-*   `get_cross_tier_configuration(coin)`
-*   `get_cross_max_borrowable(coin)`
-*   `get_cross_account_assets(coin=None)`
-*   `get_cross_max_transferable(coin)`
-*   `get_cross_risk_rate()`
-*   `get_cross_borrow_history(startTime, loanId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_repay_history(startTime, repayId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_financial_history(startTime, marginType=None, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_liquidation_history(startTime, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_flash_repay_result(idList)`
-*   `get_cross_interest_rate_and_max_borrowable(coin)`
-*   `get_cross_current_orders(symbol, startTime, orderId=None, clientOid=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_interest_history(startTime, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_history_orders(symbol, startTime, orderId=None, enterPointSource=None, clientOid=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_isolated_borrow_history(symbol, startTime, loanId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_isolated_interest_history(symbol, startTime, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_isolated_liquidation_history(symbol, startTime, endTime=None, limit=None, idLessThan=None)`
-*   `get_isolated_financial_history(symbol, startTime, marginType=None, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `isolated_batch_cancel_orders(symbol, orderIdList=None)`
-*   `get_cross_liquidation_orders(type=None, symbol=None, fromCoin=None, toCoin=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_cross_order_fills(symbol, startTime, orderId=None, idLessThan=None, endTime=None, limit=None)`
-*   `isolated_place_order(symbol, orderType, loanType, force, side, price=None, baseSize=None, quoteSize=None, clientOid=None, stpMode=None)`
-*   `isolated_batch_orders(symbol, orderList)`
-*   `isolated_cancel_order(symbol, orderId=None, clientOid=None)`
-*   `cancel_isolated_orders_in_batch(symbol, orderIdList=None)`
-*   `get_isolated_current_orders(symbol, startTime, orderId=None, clientOid=None, endTime=None, limit=None)`
-*   `get_isolated_orders_history(symbol, startTime, orderId=None, enterPointSource=None, clientOid=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_isolated_order_fills(symbol, startTime, orderId=None, idLessThan=None, endTime=None, limit=None)`
-*   `get_isolated_liquidation_orders(type=None, symbol=None, fromCoin=None, toCoin=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_isolated_account_asset(symbol=None)`
-*   `isolated_borrow(symbol, coin, borrowAmount, clientOid=None)`
-*   `isolated_repay(symbol, coin, repayAmount, clientOid=None)`
-*   `get_isolated_risk_rate(symbol=None, pageNum=None, pageSize=None)`
-*   `get_isolated_interest_rate_and_max_borrowable(symbol)`
-*   `get_isolated_tier_configuration(symbol)`
-*   `get_isolated_max_borrowable(symbol)`
-*   `isolated_flash_repay(symbolList=None)`
-*   `query_isolated_flash_repayment_result(idList)`
-*   `get_isolated_repay_history(symbol, startTime, repayId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
-*   `get_support_currencies()`
-*   `get_the_leverage_interest_rate(coin)`
+*   `async cross_batch_cancel_orders(symbol, orderIdList)`
+*   `async cross_batch_orders(symbol, orderList)`
+*   `async cross_borrow(coin, borrowAmount, clientOid=None)`
+*   `async cross_cancel_order(symbol, orderId=None, clientOid=None)`
+*   `async cross_flash_repay(coin=None)`
+*   `async cross_place_order(symbol, orderType, loanType, force, side, price=None, baseSize=None, quoteSize=None, clientOid=None, stpMode=None)`
+*   `async cross_repay(coin, repayAmount)`
+*   `async get_cross_tier_configuration(coin)`
+*   `async get_cross_max_borrowable(coin)`
+*   `async get_cross_account_assets(coin=None)`
+*   `async get_cross_max_transferable(coin)`
+*   `async get_cross_risk_rate()`
+*   `async get_cross_borrow_history(startTime, loanId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_repay_history(startTime, repayId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_financial_history(startTime, marginType=None, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_liquidation_history(startTime, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_flash_repay_result(idList)`
+*   `async get_cross_interest_rate_and_max_borrowable(coin)`
+*   `async get_cross_current_orders(symbol, startTime, orderId=None, clientOid=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_interest_history(startTime, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_history_orders(symbol, startTime, orderId=None, enterPointSource=None, clientOid=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_isolated_borrow_history(symbol, startTime, loanId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_isolated_interest_history(symbol, startTime, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_isolated_liquidation_history(symbol, startTime, endTime=None, limit=None, idLessThan=None)`
+*   `async get_isolated_financial_history(symbol, startTime, marginType=None, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async isolated_batch_cancel_orders(symbol, orderIdList=None)`
+*   `async get_cross_liquidation_orders(type=None, symbol=None, fromCoin=None, toCoin=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_cross_order_fills(symbol, startTime, orderId=None, idLessThan=None, endTime=None, limit=None)`
+*   `async isolated_place_order(symbol, orderType, loanType, force, side, price=None, baseSize=None, quoteSize=None, clientOid=None, stpMode=None)`
+*   `async isolated_batch_orders(symbol, orderList)`
+*   `async isolated_cancel_order(symbol, orderId=None, clientOid=None)`
+*   `async get_isolated_current_orders(symbol, startTime, orderId=None, clientOid=None, endTime=None, limit=None)`
+*   `async get_isolated_orders_history(symbol, startTime, orderId=None, enterPointSource=None, clientOid=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_isolated_order_fills(symbol, startTime, orderId=None, idLessThan=None, endTime=None, limit=None)`
+*   `async get_isolated_liquidation_orders(type=None, symbol=None, fromCoin=None, toCoin=None, startTime=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_isolated_account_asset(symbol=None)`
+*   `async isolated_borrow(symbol, coin, borrowAmount, clientOid=None)`
+*   `async isolated_repay(symbol, coin, repayAmount, clientOid=None)`
+*   `async get_isolated_risk_rate(symbol=None, pageNum=None, pageSize=None)`
+*   `async get_isolated_interest_rate_and_max_borrowable(symbol)`
+*   `async get_isolated_tier_configuration(symbol)`
+*   `async get_isolated_max_borrowable(symbol)`
+*   `async get_isolated_max_transferable(symbol)`
+*   `async isolated_flash_repay(symbolList=None)`
+*   `async query_isolated_flash_repayment_result(idList)`
+*   `async get_isolated_repay_history(symbol, startTime, repayId=None, coin=None, endTime=None, limit=None, idLessThan=None)`
+*   `async get_support_currencies()`
+*   `async get_the_leverage_interest_rate(coin)`
 
 ### `client.spot` (Spot Module)
 
@@ -448,88 +448,89 @@ Methods for spot trading, account, and market data.
 
 Methods for unified trading account functionalities.
 
-*   `get_account_info()`
-*   `get_account_assets()`
-*   `get_account_funding_assets(coin=None)`
-*   `get_account_fee_rate(symbol, category)`
-*   `get_convert_records(fromCoin, toCoin, startTime=None, endTime=None, limit=None, cursor=None)`
-*   `get_deduct_info()`
-*   `get_financial_records(category, coin=None, type=None, startTime=None, endTime=None, limit=None, cursor=None)`
-*   `subscribe_account_channel()`
-*   `get_payment_coins()`
-*   `get_margin_coin_info(productId)`
-*   `get_margin_loan(coin)`
-*   `get_ltv(riskUnitId=None)`
-*   `batch_cancel(orders)`
-*   `batch_modify_orders(orderList)`
-*   `batch_order(orderList)`
-*   `bind_unbind_uid_to_risk_unit(uid, operate, riskUnitId=None)`
-*   `batch_place_order_channel(category, orders)`
-*   `cancel_all_orders(category, symbol=None)`
-*   `cancel_order(orderId=None, clientOid=None)`
-*   `cancel_strategy_order(orderId=None, clientOid=None)`
-*   `close_all_positions(category, symbol=None, posSide=None)`
-*   `countdown_cancel_all(countdown)`
-*   `create_sub_account_api_key(subUid, note, type, passphrase, permissions, ips)`
-*   `create_sub_account(username, accountMode=None, note=None)`
-*   `freeze_unfreeze_sub_account(subUid, operation)`
-*   `delete_sub_account_api_key(apiKey)`
-*   `get_current_funding_rate(symbol)`
-*   `get_deposit_address(coin, chain=None, size=None)`
-*   `get_deposit_records(startTime, endTime, coin=None, orderId=None, limit=None, cursor=None)`
-*   `get_fill_history(startTime, endTime, category=None, orderId=None, limit=None, cursor=None)`
-*   `get_funding_rate_history(category, symbol, cursor=None, limit=None)`
-*   `get_instruments(category, symbol=None)`
-*   `get_historical_candlestick_uta(category, symbol, interval, startTime=None, endTime=None, type=None, limit=None)`
-*   `get_kline_candlestick(category, symbol, interval, startTime=None, endTime=None, type=None, limit=None)`
-*   `get_loan_orders(orderId=None, startTime=None, endTime=None)`
-*   `get_max_open_available(category, symbol, orderType, side, price=None, size=None)`
-*   `get_open_interest_limit(category, symbol=None)`
-*   `get_open_interest(category, symbol=None)`
-*   `get_open_orders(category=None, symbol=None, startTime=None, endTime=None, limit=None, cursor=None)`
-*   `get_order_details(orderId=None, clientOid=None)`
-*   `get_order_history(category, symbol=None, startTime=None, endTime=None, limit=None, cursor=None)`
-*   `get_orderbook(category, symbol, limit=None)`
-*   `get_position_adl_rank()`
-*   `get_position_info(category, symbol=None, posSide=None)`
-*   `get_position_tier(category, symbol=None, coin=None)`
-*   `get_positions_history(category, symbol=None, startTime=None, endTime=None, limit=None, cursor=None)`
-*   `get_proof_of_reserves()`
-*   `get_repayment_orders(startTime=None, endTime=None, limit=None)`
-*   `get_risk_reserve(category, symbol)`
-*   `get_risk_unit()`
-*   `get_sub_account_api_keys(subUid, limit=None, cursor=None)`
-*   `get_sub_account_list(limit=None, cursor=None)`
-*   `get_subaccount_unified_assets(subUid=None, cursor=None, limit=None)`
-*   `get_switch_status()`
-*   `get_main_sub_transfer_records(subUid=None, role=None, coin=None, startTime=None, endTime=None, clientOid=None, limit=None, cursor=None)`
-*   `get_tickers(category, symbol=None)`
-*   `get_trade_symbols(productId)`
-*   `get_transferable_coins(fromType, toType)`
-*   `get_transferred_quantity(coin, userId=None)`
-*   `get_withdrawal_records(startTime, endTime, coin=None, orderId=None, clientOid=None, limit=None, cursor=None)`
-*   `main_sub_account_transfer(fromType, toType, amount, coin, fromUserId, toUserId, clientOid)`
-*   `transfer(fromType, toType, amount, coin, symbol=None)`
-*   `modify_order(orderId=None, clientOid=None, qty=None, price=None, autoCancel=None)`
-*   `history_strategy_orders(category, type=None, startTime=None, endTime=None, limit=None, cursor=None)`
-*   `modify_strategy_order(orderId=None, clientOid=None, qty=None, tpTriggerBy=None, slTriggerBy=None, takeProfit=None, stopLoss=None, tpOrderType=None, slOrderType=None, tpLimitPrice=None, slLimitPrice=None)`
-*   `modify_sub_account_api_key(apiKey, passphrase, type=None, permissions=None, ips=None)`
-*   `place_order(category, symbol, qty, side, orderType, price=None, timeInForce=None, posSide=None, clientOid=None, reduceOnly=None, stpMode=None, tpTriggerBy=None, slTriggerBy=None, takeProfit=None, stopLoss=None, tpOrderType=None, slOrderType=None, tpLimitPrice=None, slLimitPrice=None)`
-*   `place_strategy_order(category, symbol, posSide, clientOid=None, type=None, tpslMode=None, qty=None, tpTriggerBy=None, slTriggerBy=None, takeProfit=None, stopLoss=None, tpOrderType=None, slOrderType=None, tpLimitPrice=None, slLimitPrice=None)`
-*   `subscribe_position_channel()`
-*   `subscribe_order_channel()`
-*   `subscribe_public_trades_channel(instType, symbol)`
-*   `subscribe_tickers_channel(instType, symbol)`
-*   `repay(repayableCoinList, paymentCoinList)`
-*   `set_holding_mode(holdMode)`
-*   `set_leverage(category, leverage, symbol=None, coin=None, posSide=None)`
-*   `set_up_deposit_account(coin, accountType)`
-*   `switch_account()`
-*   `switch_deduct(deduct)`
-*   `withdrawal(coin, transferType, address, size, chain=None, innerToType=None, areaCode=None, tag=None, remark=None, clientOid=None, memberCode=None, identityType=None, companyName=None, firstName=None, lastName=None)`
-*   `get_recent_public_fills(category, symbol=None, limit=None)`
-*   `get_repayable_coins()`
-*   `get_product_info(productId)`
+*   `async get_account_info()`
+*   `async get_account_assets()`
+*   `async get_account_funding_assets(coin=None)`
+*   `async get_account_fee_rate(symbol, category)`
+*   `async get_convert_records(fromCoin, toCoin, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async get_deduct_info()`
+*   `async get_financial_records(category, coin=None, type=None, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async subscribe_account_channel()`
+*   `async subscribe_order_channel()`
+*   `async get_payment_coins()`
+*   `async get_margin_coin_info(productId)`
+*   `async get_margin_loan(coin)`
+*   `async get_ltv(riskUnitId=None)`
+*   `async batch_cancel(orders)`
+*   `async batch_modify_orders(orderList)`
+*   `async batch_order(orders)`
+*   `async bind_unbind_uid_to_risk_unit(uid, operate, riskUnitId=None)`
+*   `async batch_place_order_channel(id, category, args)`
+*   `async cancel_all_orders(category, symbol=None)`
+*   `async cancel_order(orderId=None, clientOid=None)`
+*   `async cancel_strategy_order(orderId=None, clientOid=None)`
+*   `async close_all_positions(category, symbol=None, posSide=None)`
+*   `async countdown_cancel_all(countdown)`
+*   `async create_sub_account_api_key(subUid, note, type, passphrase, permissions, ips)`
+*   `async create_sub_account(username, accountMode=None, note=None)`
+*   `async freeze_unfreeze_sub_account(subUid, operation)`
+*   `async delete_sub_account_api_key(apikey)`
+*   `async get_current_funding_rate(symbol)`
+*   `async get_deposit_address(coin, chain=None, size=None)`
+*   `async get_deposit_records(startTime, endTime, coin=None, orderId=None, limit=None, cursor=None)`
+*   `async get_fill_history(category=None, orderId=None, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async get_funding_rate_history(category, symbol, cursor=None, limit=None)`
+*   `async get_instruments(category, symbol=None)`
+*   `async get_kline_candlestick(category, symbol, interval, startTime=None, endTime=None, type=None, limit=None)`
+*   `async get_kline_candlestick_history(category, symbol, interval, startTime=None, endTime=None, type=None, limit=None)`
+*   `async get_loan_orders(orderId=None, startTime=None, endTime=None)`
+*   `async get_max_open_available(category, symbol, orderType, side, price=None, size=None)`
+*   `async get_open_interest_limit(category, symbol=None)`
+*   `async get_open_interest(category, symbol=None)`
+*   `async get_open_orders(category=None, symbol=None, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async get_order_details(orderId=None, clientOid=None)`
+*   `async get_order_history(category, symbol=None, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async get_orderbook(category, symbol, limit=None)`
+*   `async get_position_adl_rank()`
+*   `async get_position_info(category, symbol=None, posSide=None)`
+*   `async get_position_tier(category, symbol=None, coin=None)`
+*   `async get_positions_history(category, symbol=None, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async get_proof_of_reserves()`
+*   `async get_repayment_orders(startTime=None, endTime=None, limit=None)`
+*   `async get_risk_reserve(category, symbol)`
+*   `async get_risk_unit()`
+*   `async get_sub_account_api_keys(subUid, limit=None, cursor=None)`
+*   `async get_sub_account_list(limit=None, cursor=None)`
+*   `async get_subaccount_unified_assets(subUid=None, cursor=None, limit=None)`
+*   `async get_switch_status()`
+*   `async get_main_sub_transfer_records(subUid=None, role=None, coin=None, startTime=None, endTime=None, clientOid=None, limit=None, cursor=None)`
+*   `async get_tickers(category, symbol=None)`
+*   `async get_trade_symbols(productId)`
+*   `async get_transferable_coins(fromType, toType)`
+*   `async get_transferred_quantity(coin, userId=None)`
+*   `async get_withdrawal_records(startTime, endTime, coin=None, orderId=None, clientOid=None, limit=None, cursor=None)`
+*   `async main_sub_account_transfer(fromType, toType, amount, coin, fromUserId, toUserId, clientOid)`
+*   `async transfer(fromType, toType, amount, coin, symbol=None)`
+*   `async modify_order(orderId=None, clientOid=None, qty=None, price=None, autoCancel=None)`
+*   `async history_strategy_orders(category, type=None, startTime=None, endTime=None, limit=None, cursor=None)`
+*   `async modify_strategy_order(orderId=None, clientOid=None, qty=None, tpTriggerBy=None, slTriggerBy=None, takeProfit=None, stopLoss=None, tpOrderType=None, slOrderType=None, tpLimitPrice=None, slLimitPrice=None)`
+*   `async modify_sub_account_api_key(apikey, passphrase, type=None, permissions=None, ips=None)`
+*   `async place_order(category, symbol, qty, side, orderType, price=None, timeInForce=None, posSide=None, clientOid=None, reduceOnly=None, stpMode=None, tpTriggerBy=None, slTriggerBy=None, takeProfit=None, stopLoss=None, tpOrderType=None, slOrderType=None, tpLimitPrice=None, slLimitPrice=None)`
+*   `async place_strategy_order(category, symbol, posSide, qty=None, clientOid=None, type=None, tpslMode=None, tpTriggerBy=None, slTriggerBy=None, takeProfit=None, stopLoss=None, tpOrderType=None, slOrderType=None, tpLimitPrice=None, slLimitPrice=None)`
+*   `async subscribe_position_channel()`
+*   `async subscribe_order_channel()`
+*   `async subscribe_public_trades_channel(instType, symbol)`
+*   `async subscribe_tickers_channel(instType, symbol)`
+*   `async repay(repayableCoinList, paymentCoinList)`
+*   `async set_holding_mode(holdMode)`
+*   `async set_leverage(category, leverage, symbol=None, coin=None, posSide=None)`
+*   `async set_up_deposit_account(coin, accountType)`
+*   `async switch_account()`
+*   `async switch_deduct(deduct)`
+*   `async withdrawal(coin, transferType, address, size, chain=None, innerToType=None, areaCode=None, tag=None, remark=None, clientOid=None, memberCode=None, identityType=None, companyName=None, firstName=None, lastName=None)`
+*   `async get_recent_public_fills(category, symbol=None, limit=None)`
+*   `async get_repayable_coins()`
+*   `async get_product_info(productId)`
 
 ## License
 
