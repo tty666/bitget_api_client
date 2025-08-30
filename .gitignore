@@ -6,3 +6,4 @@ dist/
 venv/
 .venv/
 markdown/
+uta_backup.py
