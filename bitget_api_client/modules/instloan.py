@@ -4,7 +4,7 @@ class Instloan:
     def __init__(self, client):
         self.client = client
 
-    def bind_unbind_sub_account_uid_to_risk_unit(self, uid, operate, riskUnitId=None):
+    async def bind_unbind_sub_account_uid_to_risk_unit(self, uid, operate, riskUnitId=None):
         """
         Bind/Unbind Sub-account UID to Risk Unit.
 
@@ -28,9 +28,9 @@ class Instloan:
         }
         if riskUnitId:
             body["riskUnitId"] = riskUnitId
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def get_loan_orders(self, orderId=None, startTime=None, endTime=None):
+    async def get_loan_orders(self, orderId=None, startTime=None, endTime=None):
         """
         Get Loan Orders.
 
@@ -55,9 +55,9 @@ class Instloan:
             params["startTime"] = startTime
         if endTime:
             params["endTime"] = endTime
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_ltv(self, riskUnitId=None):
+    async def get_ltv(self, riskUnitId=None):
         """
         Get LTV (Loan-to-Value).
 
@@ -76,9 +76,9 @@ class Instloan:
         params = {}
         if riskUnitId:
             params["riskUnitId"] = riskUnitId
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_margin_coin_info(self, productId):
+    async def get_margin_coin_info(self, productId):
         """
         Get Margin Coin Info.
 
@@ -95,9 +95,9 @@ class Instloan:
         """
         request_path = "/api/v2/spot/ins-loan/ensure-coins-convert"
         params = {"productId": productId}
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_product_info(self, productId):
+    async def get_product_info(self, productId):
         """
         Get Product Info.
 
@@ -114,9 +114,9 @@ class Instloan:
         """
         request_path = "/api/v2/spot/ins-loan/product-infos"
         params = {"productId": productId}
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_repayment_orders(self, startTime=None, endTime=None, limit=None):
+    async def get_repayment_orders(self, startTime=None, endTime=None, limit=None):
         """
         Get Repayment Orders.
 
@@ -141,9 +141,9 @@ class Instloan:
             params["endTime"] = endTime
         if limit:
             params["limit"] = limit
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_risk_unit(self):
+    async def get_risk_unit(self):
         """
         Get Risk Unit.
         Only the parent account API Key can use this endpoint.
@@ -157,9 +157,9 @@ class Instloan:
             BitgetAPIException: For other API errors.
         """
         request_path = "/api/v2/spot/ins-loan/risk-unit"
-        return self.client._send_request("GET", request_path, params={})
+        return await self.client._send_request("GET", request_path, params={})
 
-    def get_spot_symbols(self, productId):
+    async def get_spot_symbols(self, productId):
         """
         Get Spot Symbols.
 
@@ -176,9 +176,9 @@ class Instloan:
         """
         request_path = "/api/v2/spot/ins-loan/symbols"
         params = {"productId": productId}
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_transferable_amount(self, coin, userId=None):
+    async def get_transferable_amount(self, coin, userId=None):
         """
         Get transferable amount.
 
@@ -200,4 +200,4 @@ class Instloan:
         }
         if userId:
             params["userId"] = userId
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)

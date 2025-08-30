@@ -4,7 +4,7 @@ class Earn:
     def __init__(self, client):
         self.client = client
 
-    def borrow(self, loanCoin, pledgeCoin, daily, pledgeAmount=None, loanAmount=None):
+    async def borrow(self, loanCoin, pledgeCoin, daily, pledgeAmount=None, loanAmount=None):
         """
         Borrow coin.
 
@@ -39,9 +39,9 @@ class Earn:
         if pledgeAmount is None and loanAmount is None:
             raise ValueError("Either 'pledgeAmount' or 'loanAmount' must be provided.")
 
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def get_earn_account_assets(self, coin=None):
+    async def get_earn_account_assets(self, coin=None):
         """
         Earn account overview.
 
@@ -60,9 +60,9 @@ class Earn:
         params = {}
         if coin:
             params["coin"] = coin
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_currency_list(self, coin=None):
+    async def get_currency_list(self, coin=None):
         """
         Get loan-able currency list.
 
@@ -81,9 +81,9 @@ class Earn:
         params = {}
         if coin:
             params["coin"] = coin
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_debts(self):
+    async def get_debts(self):
         """
         Get the list of repay history.
 
@@ -96,9 +96,9 @@ class Earn:
             BitgetAPIException: For other API errors.
         """
         request_path = "/api/v2/earn/loan/debts"
-        return self.client._send_request("GET", request_path, params={})
+        return await self.client._send_request("GET", request_path, params={})
 
-    def get_est_interest_and_borrowable(self, loanCoin, pledgeCoin, daily, pledgeAmount):
+    async def get_est_interest_and_borrowable(self, loanCoin, pledgeCoin, daily, pledgeAmount):
         """
         Get Est. hourly interest rate and Borrowable amount.
 
@@ -123,9 +123,9 @@ class Earn:
             "daily": daily,
             "pledgeAmount": pledgeAmount
         }
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_liquidation_records(self, startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None):
+    async def get_liquidation_records(self, startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None):
         """
         Get the list of repay history.
 
@@ -164,9 +164,9 @@ class Earn:
             params["pageNo"] = pageNo
         if pageSize:
             params["pageSize"] = pageSize
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_loan_history(self, startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None):
+    async def get_loan_history(self, startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, status=None, pageNo=None, pageSize=None):
         """
         Get the list of loan history.
 
@@ -205,9 +205,9 @@ class Earn:
             params["pageNo"] = pageNo
         if pageSize:
             params["pageSize"] = pageSize
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_loan_orders(self, orderId=None, loanCoin=None, pledgeCoin=None):
+    async def get_loan_orders(self, orderId=None, loanCoin=None, pledgeCoin=None):
         """
         Get on-going loan orders.
 
@@ -232,9 +232,9 @@ class Earn:
             params["loanCoin"] = loanCoin
         if pledgeCoin:
             params["pledgeCoin"] = pledgeCoin
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_pledge_rate_history(self, startTime, endTime, orderId=None, reviseSide=None, pledgeCoin=None, pageNo=None, pageSize=None):
+    async def get_pledge_rate_history(self, startTime, endTime, orderId=None, reviseSide=None, pledgeCoin=None, pageNo=None, pageSize=None):
         """
         Get pledge rate history.
 
@@ -270,9 +270,9 @@ class Earn:
             params["pageNo"] = pageNo
         if pageSize:
             params["pageSize"] = pageSize
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_repay_history(self, startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, pageNo=None, pageSize=None):
+    async def get_repay_history(self, startTime, endTime, orderId=None, loanCoin=None, pledgeCoin=None, pageNo=None, pageSize=None):
         """
         Get the list of repay history.
 
@@ -308,9 +308,9 @@ class Earn:
             params["pageNo"] = pageNo
         if pageSize:
             params["pageSize"] = pageSize
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def modify_pledge_rate(self, orderId, amount, pledgeCoin, reviseType):
+    async def modify_pledge_rate(self, orderId, amount, pledgeCoin, reviseType):
         """
         Withdraw or supplement collateral.
 
@@ -335,9 +335,9 @@ class Earn:
             "pledgeCoin": pledgeCoin,
             "reviseType": reviseType
         }
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def redeem_savings(self, productId, periodType, amount, orderId=None):
+    async def redeem_savings(self, productId, periodType, amount, orderId=None):
         """
         Redeem savings.
         The interval of each redeem should be more than 1min, or it would return error.
@@ -364,9 +364,9 @@ class Earn:
         }
         if orderId:
             body["orderId"] = orderId
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def repay(self, orderId, repayAll, amount=None, repayUnlock=None):
+    async def repay(self, orderId, repayAll, amount=None, repayUnlock=None):
         """
         Repay.
 
@@ -393,9 +393,9 @@ class Earn:
             body["amount"] = amount
         if repayUnlock:
             body["repayUnlock"] = repayUnlock
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def get_savings_account(self):
+    async def get_savings_account(self):
         """
         Get savings account info.
 
@@ -408,9 +408,9 @@ class Earn:
             BitgetAPIException: For other API errors.
         """
         request_path = "/api/v2/earn/savings/account"
-        return self.client._send_request("GET", request_path, params={})
+        return await self.client._send_request("GET", request_path, params={})
 
-    def get_savings_product_list(self, coin=None, filter=None):
+    async def get_savings_product_list(self, coin=None, filter=None):
         """
         Get Savings Product List.
 
@@ -432,9 +432,9 @@ class Earn:
             params["coin"] = coin
         if filter:
             params["filter"] = filter
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_savings_records(self, periodType, coin=None, orderType=None, startTime=None, endTime=None, limit=None, idLessThan=None):
+    async def get_savings_records(self, periodType, coin=None, orderType=None, startTime=None, endTime=None, limit=None, idLessThan=None):
         """
         Get savings records.
 
@@ -471,9 +471,9 @@ class Earn:
             params["limit"] = limit
         if idLessThan:
             params["idLessThan"] = idLessThan
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_savings_subscription_detail(self, productId, periodType):
+    async def get_savings_subscription_detail(self, productId, periodType):
         """
         Get subscription detail before subscribe savings.
 
@@ -494,9 +494,9 @@ class Earn:
             "productId": productId,
             "periodType": periodType
         }
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_savings_subscription_result(self, productId, periodType):
+    async def get_savings_subscription_result(self, productId, periodType):
         """
         Get savings subscription info.
 
@@ -517,9 +517,9 @@ class Earn:
             "productId": productId,
             "periodType": periodType
         }
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_savings_redemption_results(self, orderId, periodType):
+    async def get_savings_redemption_results(self, orderId, periodType):
         """
         Get savings redeem result.
 
@@ -540,9 +540,9 @@ class Earn:
             "orderId": orderId,
             "periodType": periodType
         }
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_sharkfin_account(self):
+    async def get_sharkfin_account(self):
         """
         Get sharkfin account info.
 
@@ -555,9 +555,9 @@ class Earn:
             BitgetAPIException: For other API errors.
         """
         request_path = "/api/v2/earn/sharkfin/account"
-        return self.client._send_request("GET", request_path, params={})
+        return await self.client._send_request("GET", request_path, params={})
 
-    def get_sharkfin_assets(self, status, startTime=None, endTime=None, limit=None, idLessThan=None):
+    async def get_sharkfin_assets(self, status, startTime=None, endTime=None, limit=None, idLessThan=None):
         """
         Get sharkfin assets.
 
@@ -588,9 +588,9 @@ class Earn:
             params["limit"] = limit
         if idLessThan:
             params["idLessThan"] = idLessThan
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_sharkfin_products(self, coin, limit=None, idLessThan=None):
+    async def get_sharkfin_products(self, coin, limit=None, idLessThan=None):
         """
         Get sharkfin products.
 
@@ -615,9 +615,9 @@ class Earn:
             params["limit"] = limit
         if idLessThan:
             params["idLessThan"] = idLessThan
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_sharkfin_subscription_result(self, orderId):
+    async def get_sharkfin_subscription_result(self, orderId):
         """
         Get sharkfin subscription result.
 
@@ -636,9 +636,9 @@ class Earn:
         params = {
             "orderId": orderId
         }
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def subscribe_savings(self, productId, periodType, amount):
+    async def subscribe_savings(self, productId, periodType, amount):
         """
         Subscribe savings.
 
@@ -661,9 +661,9 @@ class Earn:
             "periodType": periodType,
             "amount": amount
         }
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def subscribe_sharkfin(self, productId, amount):
+    async def subscribe_sharkfin(self, productId, amount):
         """
         Subscribe sharkfin.
 
@@ -684,9 +684,9 @@ class Earn:
             "productId": productId,
             "amount": amount
         }
-        return self.client._send_request("POST", request_path, body=body)
+        return await self.client._send_request("POST", request_path, body=body)
 
-    def get_sharkfin_records(self, type, coin=None, startTime=None, endTime=None, limit=None, idLessThan=None):
+    async def get_sharkfin_records(self, type, coin=None, startTime=None, endTime=None, limit=None, idLessThan=None):
         """
         Get sharkfin records.
 
@@ -720,9 +720,9 @@ class Earn:
             params["limit"] = limit
         if idLessThan:
             params["idLessThan"] = idLessThan
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_sharkfin_subscription_detail(self, productId):
+    async def get_sharkfin_subscription_detail(self, productId):
         """
         Get subscription detail before subscribe sharkfin.
 
@@ -741,9 +741,9 @@ class Earn:
         params = {
             "productId": productId
         }
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)
 
-    def get_savings_assets(self, periodType, startTime=None, endTime=None, limit=None, idLessThan=None):
+    async def get_savings_assets(self, periodType, startTime=None, endTime=None, limit=None, idLessThan=None):
         """
         Get savings assets.
 
@@ -774,4 +774,4 @@ class Earn:
             params["limit"] = limit
         if idLessThan:
             params["idLessThan"] = idLessThan
-        return self.client._send_request("GET", request_path, params=params)
+        return await self.client._send_request("GET", request_path, params=params)

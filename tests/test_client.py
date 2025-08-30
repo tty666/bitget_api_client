@@ -3,6 +3,15 @@ from unittest.mock import Mock, patch, AsyncMock
 import asyncio
 from bitget_api_client.client import BitgetApiClient, Affiliate, Broker, Common, Contract, CopyTrading, Earn, Instloan, Margin, Spot, Uta
 
+class MockResponse:
+    def __init__(self, status, json_data):
+        self.status = status
+        self._json_data = json_data
+        self.json = AsyncMock(return_value=self._json_data)
+
+    def raise_for_status(self):
+        pass
+
 class TestBitgetApiClient(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.api_key = "test_api_key"
@@ -24,9 +33,7 @@ class TestBitgetApiClient(unittest.IsolatedAsyncioTestCase):
     @patch('aiohttp.ClientSession.get')
     async def test_send_request_get(self, mock_get):
         await self.asyncSetUp()
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json.return_value = {"code": "00000", "msg": "success"}
+        mock_response = MockResponse(200, {"code": "00000", "msg": "success"})
         mock_get.return_value.__aenter__.return_value = mock_response
 
         response = await self.client._send_request("GET", "/test_path", params={"param1": "value1"})
@@ -37,9 +44,7 @@ class TestBitgetApiClient(unittest.IsolatedAsyncioTestCase):
     @patch('aiohttp.ClientSession.post')
     async def test_send_request_post(self, mock_post):
         await self.asyncSetUp()
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json.return_value = {"code": "00000", "msg": "success"}
+        mock_response = MockResponse(200, {"code": "00000", "msg": "success"})
         mock_post.return_value.__aenter__.return_value = mock_response
 
         response = await self.client._send_request("POST", "/test_path", body={"key": "value"})
@@ -5759,10 +5764,6 @@ class TestUta(unittest.IsolatedAsyncioTestCase):
             "/api/v3/user/create-sub",
             body={'username': 'anotheruser'}
         )
-
-
-
-
 
     async def test_get_max_open_available(self):
         expected_response = {"code": "00000", "msg": "success", "data": {"available": "52.008255"}}
